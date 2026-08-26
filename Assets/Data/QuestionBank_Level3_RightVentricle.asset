@@ -1,0 +1,373 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &-3417964737389105404
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5774bd79aa42c7f42b20b5b97d4c619d, type: 3}
+  m_Name: lv3_mc_pulmonary_valve
+  m_EditorClassIdentifier: Assembly-CSharp::Cardio.Data.PuzzleData
+  PuzzleId: lv3_mc_pulmonary_valve
+  Type: 4
+  Complexity: 2
+  Prompt: Which valve stops blood falling back from the pulmonary artery into the
+    right ventricle?
+  TargetStructureId: 
+  LabelText: 
+  Options:
+  - Pulmonary valve
+  - Tricuspid valve
+  - Mitral valve
+  - Aortic valve
+  CorrectOptionIndex: 0
+  SequenceSteps: []
+  Explanation: The pulmonary valve. Like the aortic valve it is semilunar, with three
+    cusps, and closes as the ventricle relaxes.
+  Hint: It is named after the vessel it guards.
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 74d8da11601f4e543a81f3121335324b, type: 3}
+  m_Name: QuestionBank_Level3_RightVentricle
+  m_EditorClassIdentifier: Assembly-CSharp::Cardio.Data.QuestionBank
+  Level: 3
+  Puzzles:
+  - {fileID: 7924394505421260761}
+  - {fileID: 5319247510670861661}
+  - {fileID: 3234815453961793624}
+  - {fileID: 7850974450045051776}
+  - {fileID: 355129878071560371}
+  - {fileID: 2078944284543198917}
+  - {fileID: 5895432590858741150}
+  - {fileID: -3417964737389105404}
+  - {fileID: 3537712595650189921}
+  - {fileID: 1447895651222493726}
+  - {fileID: 4826855053187592213}
+  - {fileID: 1494327056815122512}
+--- !u!114 &355129878071560371
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5774bd79aa42c7f42b20b5b97d4c619d, type: 3}
+  m_Name: lv3_mc_vena_cava
+  m_EditorClassIdentifier: Assembly-CSharp::Cardio.Data.PuzzleData
+  PuzzleId: lv3_mc_vena_cava
+  Type: 4
+  Complexity: 1
+  Prompt: Which vessels return deoxygenated blood to the right atrium?
+  TargetStructureId: 
+  LabelText: 
+  Options:
+  - Superior and inferior vena cava
+  - The pulmonary veins
+  - The aorta and carotids
+  - The hepatic arteries
+  CorrectOptionIndex: 0
+  SequenceSteps: []
+  Explanation: The superior vena cava drains the head, neck and arms; the inferior
+    vena cava drains everything below the diaphragm. Both empty into the right atrium.
+  Hint: One drains the upper body, the other the lower.
+--- !u!114 &1447895651222493726
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5774bd79aa42c7f42b20b5b97d4c619d, type: 3}
+  m_Name: lv3_mc_gas_exchange
+  m_EditorClassIdentifier: Assembly-CSharp::Cardio.Data.PuzzleData
+  PuzzleId: lv3_mc_gas_exchange
+  Type: 4
+  Complexity: 3
+  Prompt: Where in the pulmonary circuit does gas exchange actually take place?
+  TargetStructureId: 
+  LabelText: 
+  Options:
+  - In the capillaries surrounding the alveoli
+  - Inside the right ventricle
+  - In the wall of the aorta
+  - In the superior vena cava
+  CorrectOptionIndex: 0
+  SequenceSteps: []
+  Explanation: In the dense capillary network wrapping each alveolus. The barrier
+    there is thin enough for oxygen and carbon dioxide to diffuse across in a fraction
+    of a second.
+  Hint: It happens where the blood vessels are thinnest and closest to air.
+--- !u!114 &1494327056815122512
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5774bd79aa42c7f42b20b5b97d4c619d, type: 3}
+  m_Name: lv3_mc_circuit_definition
+  m_EditorClassIdentifier: Assembly-CSharp::Cardio.Data.PuzzleData
+  PuzzleId: lv3_mc_circuit_definition
+  Type: 4
+  Complexity: 3
+  Prompt: 'Pulmonary circulation is best described as the circuit that carries blood:'
+  TargetStructureId: 
+  LabelText: 
+  Options:
+  - From the right heart to the lungs and back to the left heart
+  - From the left heart to the body and back
+  - From the heart to the liver and back
+  - Between the two atria directly
+  CorrectOptionIndex: 0
+  SequenceSteps: []
+  Explanation: 'That is the definition. Systemic circulation is the other loop: left
+    heart, out to the body, back to the right heart. The two run in series.'
+  Hint: It is the loop that involves the lungs.
+--- !u!114 &2078944284543198917
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5774bd79aa42c7f42b20b5b97d4c619d, type: 3}
+  m_Name: lv3_mc_cusps
+  m_EditorClassIdentifier: Assembly-CSharp::Cardio.Data.PuzzleData
+  PuzzleId: lv3_mc_cusps
+  Type: 4
+  Complexity: 2
+  Prompt: How many cusps does the tricuspid valve have?
+  TargetStructureId: 
+  LabelText: 
+  Options:
+  - Three
+  - Two
+  - Four
+  - One
+  CorrectOptionIndex: 0
+  SequenceSteps: []
+  Explanation: Three. The mitral valve on the left side has two, which is why it
+    is also called the bicuspid valve.
+  Hint: Compare the name with the mitral valve's alternative name.
+--- !u!114 &3234815453961793624
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5774bd79aa42c7f42b20b5b97d4c619d, type: 3}
+  m_Name: lv3_mc_tricuspid
+  m_EditorClassIdentifier: Assembly-CSharp::Cardio.Data.PuzzleData
+  PuzzleId: lv3_mc_tricuspid
+  Type: 4
+  Complexity: 1
+  Prompt: Which valve sits between the right atrium and the right ventricle?
+  TargetStructureId: 
+  LabelText: 
+  Options:
+  - Tricuspid valve
+  - Mitral valve
+  - Aortic valve
+  - Pulmonary valve
+  CorrectOptionIndex: 0
+  SequenceSteps: []
+  Explanation: The tricuspid valve. It is the right-side counterpart of the mitral
+    valve, but has three cusps rather than two.
+  Hint: Its name tells you how many cusps it has.
+--- !u!114 &3537712595650189921
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5774bd79aa42c7f42b20b5b97d4c619d, type: 3}
+  m_Name: lv3_mc_wall_thickness
+  m_EditorClassIdentifier: Assembly-CSharp::Cardio.Data.PuzzleData
+  PuzzleId: lv3_mc_wall_thickness
+  Type: 4
+  Complexity: 2
+  Prompt: Why is the right ventricle wall thinner than the left ventricle wall?
+  TargetStructureId: 
+  LabelText: 
+  Options:
+  - It pumps against the much lower resistance of the lungs
+  - It holds far less blood
+  - It beats only half as often
+  - It contains no cardiac muscle
+  CorrectOptionIndex: 0
+  SequenceSteps: []
+  Explanation: Both ventricles eject a similar volume per beat, but pulmonary circulation
+    is a low-pressure circuit, so the right ventricle needs far less muscle to do
+    its job.
+  Hint: Think about pressure rather than volume.
+--- !u!114 &4826855053187592213
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5774bd79aa42c7f42b20b5b97d4c619d, type: 3}
+  m_Name: lv3_mc_pressure
+  m_EditorClassIdentifier: Assembly-CSharp::Cardio.Data.PuzzleData
+  PuzzleId: lv3_mc_pressure
+  Type: 4
+  Complexity: 3
+  Prompt: 'Compared with the systemic circulation, the pulmonary circulation is:'
+  TargetStructureId: 
+  LabelText: 
+  Options:
+  - A lower-pressure circuit
+  - A higher-pressure circuit
+  - At identical pressure
+  - Not a closed circuit at all
+  CorrectOptionIndex: 0
+  SequenceSteps: []
+  Explanation: Much lower pressure. Pulmonary arterial pressure is roughly a fifth
+    of systemic arterial pressure, which protects the delicate alveolar capillaries
+    from damage.
+  Hint: Delicate lung tissue could not survive systemic pressures.
+--- !u!114 &5319247510670861661
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5774bd79aa42c7f42b20b5b97d4c619d, type: 3}
+  m_Name: lv3_flow_pulmonary_circuit
+  m_EditorClassIdentifier: Assembly-CSharp::Cardio.Data.PuzzleData
+  PuzzleId: lv3_flow_pulmonary_circuit
+  Type: 2
+  Complexity: 3
+  Prompt: Order the pulmonary circuit, from leaving the right ventricle to arriving
+    in the left heart.
+  TargetStructureId: 
+  LabelText: 
+  Options: []
+  CorrectOptionIndex: 0
+  SequenceSteps:
+  - Pulmonary Artery
+  - Lungs
+  - Pulmonary Veins
+  - Left Atrium
+  Explanation: 'This is the pulmonary circulation: blood is sent to the lungs to
+    be oxygenated and returns to the left atrium, ready to be pumped around the body.'
+  Hint: Gas exchange happens in the middle of this sequence.
+--- !u!114 &5895432590858741150
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5774bd79aa42c7f42b20b5b97d4c619d, type: 3}
+  m_Name: lv3_mc_pulmonary_artery
+  m_EditorClassIdentifier: Assembly-CSharp::Cardio.Data.PuzzleData
+  PuzzleId: lv3_mc_pulmonary_artery
+  Type: 4
+  Complexity: 2
+  Prompt: 'The pulmonary artery is unusual among arteries because:'
+  TargetStructureId: 
+  LabelText: 
+  Options:
+  - It carries deoxygenated blood away from the heart
+  - It carries oxygenated blood towards the heart
+  - It has no muscular wall
+  - It contains no valves anywhere in the circuit
+  CorrectOptionIndex: 0
+  SequenceSteps: []
+  Explanation: Arteries are defined by carrying blood away from the heart, not by
+    oxygen content. The pulmonary artery is the main exception to the usual 'arteries
+    carry oxygenated blood' shorthand.
+  Hint: The definition of an artery is about direction, not oxygen.
+--- !u!114 &7850974450045051776
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5774bd79aa42c7f42b20b5b97d4c619d, type: 3}
+  m_Name: lv3_mc_rv_blood
+  m_EditorClassIdentifier: Assembly-CSharp::Cardio.Data.PuzzleData
+  PuzzleId: lv3_mc_rv_blood
+  Type: 4
+  Complexity: 1
+  Prompt: What kind of blood does the right ventricle pump?
+  TargetStructureId: 
+  LabelText: 
+  Options:
+  - Deoxygenated blood
+  - Oxygenated blood
+  - An even mixture of both
+  - Plasma only
+  CorrectOptionIndex: 0
+  SequenceSteps: []
+  Explanation: Deoxygenated. The right heart receives blood returning from the body
+    and sends it to the lungs to pick up oxygen.
+  Hint: Consider where the right ventricle sends blood next.
+--- !u!114 &7924394505421260761
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5774bd79aa42c7f42b20b5b97d4c619d, type: 3}
+  m_Name: lv3_flow_right_heart
+  m_EditorClassIdentifier: Assembly-CSharp::Cardio.Data.PuzzleData
+  PuzzleId: lv3_flow_right_heart
+  Type: 2
+  Complexity: 2
+  Prompt: Order the path of deoxygenated blood through the right heart.
+  TargetStructureId: 
+  LabelText: 
+  Options: []
+  CorrectOptionIndex: 0
+  SequenceSteps:
+  - Superior Vena Cava
+  - Right Atrium
+  - Tricuspid Valve
+  - Right Ventricle
+  - Pulmonary Valve
+  - Pulmonary Artery
+  Explanation: Deoxygenated blood returns via the vena cavae to the right atrium,
+    passes the tricuspid valve into the right ventricle, and is pumped through the
+    pulmonary valve into the pulmonary artery.
+  Hint: Start with the vessel bringing blood down from the head and arms.
