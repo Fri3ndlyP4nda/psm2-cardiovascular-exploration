@@ -21,8 +21,9 @@ namespace Cardio.EditorTools
             PerformanceSelfCheck.Run();
             DDASelfCheck.Run();
 
-            // Last, because it opens the Level 1 scene.
+            // These two open scenes, so they run last.
             AStarSelfCheck.Run();
+            PerformanceBudgetCheck.Run();
 
             Debug.Log("[PSM2] ===== Self-checks complete =====");
         }

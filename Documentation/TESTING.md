@@ -1,4 +1,4 @@
-# Testing — Phase 9
+# Testing — Phase 10
 
 White-box test procedures for the systems that exist today. Each case names the script
 under test, so the PSM2 report can map a test back to a code path.
@@ -25,8 +25,12 @@ paths. It does **not** exercise uGUI: no button is clicked, no chip is dragged, 
 
 ## Automated coverage
 
-209 automated checks run without a human — 93 self-check assertions plus 116 NUnit
-test cases (41 EditMode, 75 PlayMode). Run them before every commit.
+238 automated checks run without a human — 120 self-check assertions plus 118 NUnit
+test cases (41 EditMode, 77 PlayMode). Run them before every commit.
+
+**None of them proves the game is playable by a person.** Not one clicks a button,
+renders a frame, or hears a sound. That distinction is the whole point of the table
+at the top of this document, and it is why the manual pass below is still owed.
 
 The two units are not the same thing and the table below mixes them: the self-checks
 count individual assertions, while the NUnit rows count *test cases* (a case may make
@@ -49,6 +53,7 @@ which is why `PuzzleContentTests` reports 26 cases from 11 methods).
 |---|---|---|
 | `PerformanceSelfCheck` | 24 | scoring rule, par times, aggregate formulas, divide-by-zero guards |
 | `DDASelfCheck` | 33 | difficulty policy in both directions; prints the decision table |
+| `PerformanceBudgetCheck` | 27 | the rendering decisions the 60 FPS target relies on, across all three levels — **design only, not frame timing** |
 | `AStarSelfCheck` | 36 | grid and pathfinding against real Level 1 geometry, plus **Levels 2 and 3 navigability**: every station and the exit reachable from the spawn, and Level 2's collateral route around the thrombus |
 | `PuzzleContentTests` (EditMode) | 26 | every shipped puzzle validated and answered right and wrong; structure targets checked against **every** level scene; all five formats present per level |
 | `SavePersistenceTests` (EditMode) | 15 | save/load, unlocking, corruption recovery, offline queue, **session-history round-trip, cap and reset** |
@@ -59,6 +64,7 @@ which is why `PuzzleContentTests` reports 26 cases from 11 methods).
 | `PuzzleAffordanceTests` (PlayMode) | 7 | **hover highlighting and camera orbit during world-picking puzzles** |
 | `HostileCombatTests` (PlayMode) | 9 | wrong answer spawns one tagged leukemic blast, kill delivers that question's hint, score penalty and clear-level bonus, respawn |
 | `StateAndSceneTests` (PlayMode) | 13 | bootstrapping, scene loading, state machine, panel visibility |
+| `FullLoopFunctionalTests` (PlayMode) | 2 | **a whole level played start to finish**: every openable station solved, tracker/objective/save/dashboard all agreeing at the end |
 | `DashboardAndAudioTests` (PlayMode) | 9 | **finishing or failing a level writes a history record**, the dashboard reads it back and survives an empty profile, and each gameplay event fires its audio cue |
 
 ## TC coverage map
@@ -87,7 +93,7 @@ which is why `PuzzleContentTests` reports 26 cases from 11 methods).
 | TC-20 DDA in play | **Yes** | Pass | No | Promotion, demotion, and every consumer receiving the change |
 | TC-21 A* pathfinding | **Yes** | Pass | No | Grid, routes, clearance, blockades, **and that all three levels are completable** |
 | TC-22 Obstacles in play | **Mostly** | Pass | Partly | Grid build, movement, no tunnelling, no stuck recoveries, tier speed. **Whether a chase feels threatening is MANUAL REQUIRED** |
-| TC-23 Performance / 60 FPS | No | — | **MANUAL REQUIRED** | Batch mode has no renderer; frame timing there is meaningless |
+| TC-23 Performance / 60 FPS | **Partly** | Design: Pass | **MANUAL REQUIRED** | `PerformanceBudgetCheck` verifies the decisions credited for the target — no real-time shadows, shadow casting/receiving off, environment static-batched, ≤16 shared materials, 160-unit far clip. **It does not and cannot measure FPS**: batch mode has no renderer. The number itself needs the HUD counter on the target laptop |
 | TC-25 Dashboard | **Mostly** | Pass | Partly | Record writing, aggregation, history ordering, cap and empty-profile handling automated. **Whether the panel is readable, and clicking Profile, are MANUAL REQUIRED** |
 | TC-26 Audio cues | **Mostly** | Pass | Partly | Every cue file generates, loads, and fires on the right event. **Whether any of it sounds acceptable is MANUAL REQUIRED — batch mode has no audio device** |
 | TC-24 Combat and earned hints | **Mostly** | Pass | Partly | Spawn-on-wrong-answer, puzzle tagging, kill→hint delivery, score penalty/bonus and respawn all automated. **Whether the blast reads as threatening rather than annoying is MANUAL REQUIRED** |
@@ -399,10 +405,40 @@ Record the test machine's CPU, GPU and resolution alongside the result.
 
 ---
 
+# PHASE 10 MANUAL PASS — NOT YET EXECUTED
+
+> **Status: owed in full. No human has played this build.**
+>
+> Everything below needs eyes, ears, hands or subject knowledge. None of it can be
+> discharged by an automated check, and none of it should be recorded as passed
+> because a related API test passes. Phase 10's automated half is complete; this
+> half has not been started.
+>
+> Run it in this order — a broken menu button makes every later item unreadable.
+
+| Block | Covers | Why a machine cannot do it |
+|---|---|---|
+| **A** | Real uGUI interaction (items 1-6) | Nothing in the suite clicks, drags or focuses |
+| **B** | Cursor and window (7-8) | Needs a window manager |
+| **C** | Camera feel (9-11) | "Comfortable" is not measurable |
+| **D** | Visual feedback (11a-15) | Needs a rendered frame |
+| **D2** | Levels 2 and 3 (15a-15e) | Pacing and legibility; **includes MR-1 and MR-3** |
+| **D3** | Dashboard and audio (15f-15j) | Needs a screen and a speaker; **includes MR-2 on audio** |
+| **E** | Anatomical accuracy (16-17b) | Needs your subject knowledge; **this is MR-2** |
+| **F** | Performance / 60 FPS (18-19) | Batch mode has no renderer |
+| **G** | Balance and enjoyment (20-24) | Wholly subjective, and the actual research question |
+
+The three MR items from Phase 8 are folded in rather than tracked separately:
+**MR-1** is item 15a, **MR-2** is items 16-17b plus 15i for audio, **MR-3** is item
+15c. They remain listed in "Manual review needed" above with the reasoning for why
+each is undecidable by test.
+
+---
+
 # MANUAL PLAYTEST CHECKLIST
 
 Only things that genuinely cannot be automated. Everything else above is covered by
-the 209 automated checks — do not re-test it by hand.
+the 238 automated checks — do not re-test it by hand.
 
 Open `Assets/Scenes/MainMenu.unity`, press Play.
 

@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using Cardio.Core;
+using Cardio.Data;
 using Cardio.Gameplay;
 using Cardio.UI;
 using NUnit.Framework;
@@ -92,8 +93,8 @@ namespace Cardio.Tests
         {
             // Answer one puzzle correctly so the record has something in it.
             PuzzleManager puzzles = PuzzleManager.Instance;
-            PuzzleStation station = OpenableStation();
-            Assert.IsNotNull(station, "level has no station openable at the current tier");
+            PuzzleStation station = OpenableStructureStation();
+            Assert.IsNotNull(station, "level has no world-picking station openable at the current tier");
 
             Assert.IsTrue(puzzles.BeginPuzzle(station.PuzzleId), "station puzzle should open");
             yield return TestLevel.Frames(2);
@@ -181,7 +182,8 @@ namespace Cardio.Tests
             int before = audio.CueCount(AudioCue.Correct);
 
             PuzzleManager puzzles = PuzzleManager.Instance;
-            PuzzleStation station = OpenableStation();
+            PuzzleStation station = OpenableStructureStation();
+            Assert.IsNotNull(station, "level has no world-picking station openable at the current tier");
             Assert.IsTrue(puzzles.BeginPuzzle(station.PuzzleId), "station puzzle should open");
             yield return TestLevel.Frames(2);
 
@@ -196,7 +198,8 @@ namespace Cardio.Tests
         public IEnumerator AnsweringWrongly_FiresTheWrongCue()
         {
             PuzzleManager puzzles = PuzzleManager.Instance;
-            PuzzleStation station = OpenableStation();
+            PuzzleStation station = OpenableStructureStation();
+            Assert.IsNotNull(station, "level has no world-picking station openable at the current tier");
             Assert.IsTrue(puzzles.BeginPuzzle(station.PuzzleId), "station puzzle should open");
             yield return TestLevel.Frames(2);
 
@@ -222,17 +225,24 @@ namespace Cardio.Tests
                            "completing a level should play the LevelComplete cue");
         }
         /// <summary>
-        /// A station whose puzzle the current difficulty tier will actually open.
+        /// A station whose puzzle the current tier will open AND that is
+        /// answered by pointing at geometry.
         ///
-        /// At Easy the complexity cap is 1, so several Level 1 stations refuse
-        /// to open by design. Grabbing an arbitrary station makes the test fail
-        /// for a reason that has nothing to do with what it is checking.
+        /// Two filters, both learned the hard way. The complexity cap matters
+        /// because at Easy several Level 1 stations refuse to open by design.
+        /// The format matters because SubmitStructure cannot answer a
+        /// multiple-choice or sequence puzzle - these tests passed only as long
+        /// as FindObjectsByType happened to return a structure puzzle first,
+        /// and adding another suite changed that order and exposed it.
         /// </summary>
-        private static PuzzleStation OpenableStation()
+        private static PuzzleStation OpenableStructureStation()
         {
             foreach (PuzzleStation candidate in Object.FindObjectsByType<PuzzleStation>(FindObjectsInactive.Include))
             {
-                if (PuzzleManager.Instance.IsWithinComplexityCap(candidate.PuzzleId)) return candidate;
+                if (!PuzzleManager.Instance.IsWithinComplexityCap(candidate.PuzzleId)) continue;
+
+                PuzzleData puzzle = PuzzleManager.Instance.Bank.Find(candidate.PuzzleId);
+                if (puzzle != null && puzzle.Type.UsesWorldPicking()) return candidate;
             }
 
             return null;

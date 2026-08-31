@@ -14,7 +14,22 @@ demonstrable — nothing is "half wired up and finished later".
 | 7 | Firebase Auth, Firestore, session logging, offline queue | **Deferred** — blocked on manual SDK setup |
 | 8 | Levels 2 and 3 in full, more puzzles | **Done** |
 | 9 | Performance dashboard, UI polish, audio, animation | **Done** |
-| 10 | White-box testing, functional and performance testing, UAT preparation | Next |
+| 10 | White-box testing, functional and performance testing, UAT preparation | **Automated half done; manual pass owed** |
+
+> ## ⚠ THE PROJECT IS NOT COMPLETE
+>
+> Nine of ten phases are done, but **Phase 7 (Firebase) has not been started** and
+> **no human has ever played this build**. "Phase 10 complete" means its automated
+> half is complete; it does not mean the project is finished. Two things are
+> outstanding and neither is small:
+>
+> | Outstanding | Blocked on |
+> |---|---|
+> | **Phase 7 — Firebase** | Three manual setup steps only the developer can do (below) |
+> | **The Phase 10 manual pass** | A person. See TESTING.md, "PHASE 10 MANUAL PASS" |
+>
+> Everything claimed as verified in this document was verified by automated checks.
+> No claim here rests on anyone having played the game, because nobody has.
 
 > **Phase 7 is deliberately out of order.** It needs three things that cannot be done
 > from inside the project: the Firebase Unity SDK (a Google download, not a UPM
@@ -425,18 +440,51 @@ earlier phases; nothing further was added, because the PSM1 priority order puts
 visual polish last and the remaining budget is better spent on Phase 10 and the
 manual playtest that has still never happened.
 
-## Phase 10 — Testing
+## Phase 10 — Testing (automated half complete; manual pass owed)
 
-Substantially done already: the assembly-definition split landed in Phase 6, and there
-are **168 automated checks** — 72 self-check assertions plus 96 NUnit cases across 3
-self-check suites, 2 EditMode suites and 7 PlayMode suites.
+Delivered: `Editor/PerformanceBudgetCheck.cs`, `Editor/UatExport.cs`,
+`Tests/PlayMode/FullLoopFunctionalTests.cs`, and [UAT.md](UAT.md).
 
-**EditMode tests for the pure classes are already written** — `PuzzleContentTests` (21
-cases) and `SavePersistenceTests` (9). This item does **not** need redoing in Phase 10;
-verify and extend the existing suites rather than starting them.
+**238 automated checks** — 120 self-check assertions plus 118 NUnit cases, all
+passing, zero compiler warnings.
 
-What actually remains: functional tests of the full loop **by hand** against the TC
-list (nothing has exercised uGUI — see the MANUAL PLAYTEST CHECKLIST), performance
-measurement against the 60 FPS target on a standard laptop, and UAT preparation — the
-metrics in `SessionData` and `LevelPerformance` are what gets compared against the
-questionnaire and interview results.
+**Full-loop functional testing, automated half.** `FullLoopFunctionalTests` plays a
+level start to finish: solves every station the tier will open, then asserts the
+tracker, the objective board, the save file and the dashboard record all agree about
+what happened. That is the strongest end-to-end claim available without a person, and
+it is explicitly *not* the manual TC pass.
+
+**Performance, automated half.** `PerformanceBudgetCheck` verifies across all three
+levels that the decisions ARCHITECTURE section 8 credits for the 60 FPS target are
+actually in the built scenes: one directional light, no real-time shadows anywhere,
+every environment renderer opted out of casting and receiving, all environment
+geometry static-batched, ≤16 shared materials, and a 160-unit far clip.
+
+**It does not measure frame rate and cannot.** Batch mode has no renderer. The check
+answers "are the things we said we did still done", not "is it fast"; a regression
+such as shadows being re-enabled would be caught, but the number itself needs the HUD
+counter on the target laptop. TC-23 remains MANUAL REQUIRED.
+
+*Found while writing it:* the first version asserted a scene-wide cap on non-static
+renderers, which failed on Levels 2 and 3. That was the check being wrong, not the
+build — those levels have more stations and more agents, all of which correctly move.
+Rescoped to the `Environment_*` hierarchy, where the answer is unambiguous: **zero**
+environment renderers have lost their batching flag in any level.
+
+**UAT preparation.** `PSM2 ▸ UAT ▸ Export Session Metrics to CSV` writes one row per
+finished attempt from the local history — the objective half of the evaluation, in a
+form a spreadsheet can open. [UAT.md](UAT.md) carries the participant protocol, a
+questionnaire whose every item names the metric it should be read against, interview
+prompts, and a threats-to-validity section that states plainly that the first
+participant will also be this build's first player.
+
+**Already satisfied before this phase:** EditMode tests for the pure classes
+(`PuzzleContentTests`, `SavePersistenceTests`) landed earlier and were extended rather
+than restarted.
+
+### What Phase 10 does NOT include
+
+The manual pass. TC-01 to TC-23 by hand, the FPS measurement, MR-1/2/3, and the
+dashboard and audio judgements are **owed in full and have not been started**. They
+need a person, and no automated result substitutes for them. See TESTING.md,
+"PHASE 10 MANUAL PASS — NOT YET EXECUTED".
