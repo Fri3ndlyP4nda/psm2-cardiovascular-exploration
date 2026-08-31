@@ -48,3 +48,7 @@ crashlytics-build.properties
 # diagnostic invents another log name.
 /*.log
 /*.xml
+
+# Regenerable content dump behind Documentation/WALKTHROUGH.md.
+# Rebuild with PSM2 > Content > Dump Question Banks to Text.
+/bankdump.txt
