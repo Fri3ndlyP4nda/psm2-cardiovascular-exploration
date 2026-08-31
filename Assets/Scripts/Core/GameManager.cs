@@ -115,6 +115,11 @@ namespace Cardio.Core
                 CurrentDifficulty = startingDifficulty
             };
 
+            // Counted in memory only. Writing the file here would mean a disk
+            // write every time a test calls StartNewSession; it reaches disk on
+            // the next completed level or on quit.
+            if (Save != null) Save.Progress.TotalSessionsPlayed++;
+
             // Measurements and adaptation state belong to a session, so they are
             // discarded with it.
             Cardio.DDA.PerformanceTracker.Instance?.ResetSession();

@@ -38,8 +38,10 @@ namespace Cardio.Core
             // Order within this group matters: the tracker must exist before the
             // DDAManager subscribes to it, and HintManager before the DDAManager
             // pushes the opening tier into it.
+            go.AddComponent<AudioManager>();
             go.AddComponent<Cardio.DDA.PerformanceTracker>();
             go.AddComponent<Cardio.Gameplay.HintManager>();
+            go.AddComponent<Cardio.Gameplay.AudioCueListener>();
             go.AddComponent<Cardio.DDA.DDAManager>();
         }
     }

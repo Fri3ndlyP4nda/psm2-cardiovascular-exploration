@@ -15,6 +15,38 @@ namespace Cardio.Core
     /// format so that adding the sync layer does not invalidate save files
     /// produced during earlier testing.
     /// </summary>
+    /// <summary>
+    /// One finished level attempt, kept locally so the Phase 9 dashboard has a
+    /// history to show.
+    ///
+    /// Deliberately NOT the same thing as <see cref="PlayerProgress.PendingSessionLogs"/>.
+    /// That list is Phase 7's Firestore upload queue - things not yet sent. This
+    /// one is the player's own record and is never drained. Merging them would
+    /// mean the dashboard empties itself the first time a sync succeeds.
+    ///
+    /// The field list mirrors the PSM1 SESSION_LOGS document so Phase 7 can
+    /// serialise from the same shape.
+    /// </summary>
+    [Serializable]
+    public class SessionRecord
+    {
+        public string DateUtc = string.Empty;
+        public string DisplayName = "Guest";
+        public int Level;
+        public int Score;
+        public int PuzzlesAttempted;
+        public int PuzzlesCorrect;
+        public int IncorrectAnswers;
+        public int PuzzlesFailed;
+        public int HintsUsed;
+        public int FinalDifficulty;
+        public float AverageResponseSeconds;
+        public float DurationSeconds;
+        public bool Completed;
+
+        public float Accuracy01 => PuzzlesAttempted <= 0 ? 0f : (float)PuzzlesCorrect / PuzzlesAttempted;
+    }
+
     [Serializable]
     public class PlayerProgress
     {
@@ -30,6 +62,9 @@ namespace Cardio.Core
         /// <summary>Session summaries that have not yet reached Firestore. Populated in Phase 7.</summary>
         public List<string> PendingSessionLogs = new List<string>();
 
+        /// <summary>Finished level attempts, newest last. Capped; see SaveManager.MaxSessionHistory.</summary>
+        public List<SessionRecord> SessionHistory = new List<SessionRecord>();
+
         public int TotalSessionsPlayed;
     }
 
@@ -37,6 +72,16 @@ namespace Cardio.Core
     public class SaveManager : MonoBehaviour
     {
         private const string FileName = "psm2_progress.json";
+
+        /// <summary>
+        /// How many finished attempts the local history keeps.
+        ///
+        /// Bounded because this file is rewritten on every level completion and
+        /// an unbounded list would grow without limit across a term of use. The
+        /// dashboard shows the most recent handful; twenty is enough to see a
+        /// trend without the file becoming something the player has to manage.
+        /// </summary>
+        public const int MaxSessionHistory = 20;
 
         [Header("Debug")]
         [Tooltip("Writes the save path to the Console on start so it is easy to find during testing.")]
@@ -107,6 +152,38 @@ namespace Cardio.Core
             if (id + 1 > Progress.HighestUnlockedLevel) Progress.HighestUnlockedLevel = Mathf.Min(id + 1, GameConstants.LevelScenes.Length);
 
             SaveNow();
+        }
+
+        /// <summary>
+        /// Appends one finished attempt to the local history and persists it.
+        ///
+        /// Oldest entries are dropped once the cap is reached, so the newest
+        /// record is always kept even when the list is full.
+        /// </summary>
+        public void AppendSessionRecord(SessionRecord record)
+        {
+            if (record == null) return;
+
+            Progress.SessionHistory.Add(record);
+
+            int excess = Progress.SessionHistory.Count - MaxSessionHistory;
+            if (excess > 0) Progress.SessionHistory.RemoveRange(0, excess);
+
+            SaveNow();
+        }
+
+        /// <summary>Most recent attempts, newest first, at most <paramref name="count"/>.</summary>
+        public List<SessionRecord> RecentSessions(int count)
+        {
+            var recent = new List<SessionRecord>();
+            List<SessionRecord> all = Progress.SessionHistory;
+
+            for (int i = all.Count - 1; i >= 0 && recent.Count < count; i--)
+            {
+                if (all[i] != null) recent.Add(all[i]);
+            }
+
+            return recent;
         }
 
         /// <summary>Level the "Continue" button should resume at.</summary>

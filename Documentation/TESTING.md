@@ -1,4 +1,4 @@
-# Testing — Phase 8
+# Testing — Phase 9
 
 White-box test procedures for the systems that exist today. Each case names the script
 under test, so the PSM2 report can map a test back to a code path.
@@ -25,8 +25,8 @@ paths. It does **not** exercise uGUI: no button is clicked, no chip is dragged, 
 
 ## Automated coverage
 
-194 automated checks run without a human — 93 self-check assertions plus 101 NUnit
-test cases (35 EditMode, 66 PlayMode). Run them before every commit.
+209 automated checks run without a human — 93 self-check assertions plus 116 NUnit
+test cases (41 EditMode, 75 PlayMode). Run them before every commit.
 
 The two units are not the same thing and the table below mixes them: the self-checks
 count individual assertions, while the NUnit rows count *test cases* (a case may make
@@ -51,7 +51,7 @@ which is why `PuzzleContentTests` reports 26 cases from 11 methods).
 | `DDASelfCheck` | 33 | difficulty policy in both directions; prints the decision table |
 | `AStarSelfCheck` | 36 | grid and pathfinding against real Level 1 geometry, plus **Levels 2 and 3 navigability**: every station and the exit reachable from the spawn, and Level 2's collateral route around the thrombus |
 | `PuzzleContentTests` (EditMode) | 26 | every shipped puzzle validated and answered right and wrong; structure targets checked against **every** level scene; all five formats present per level |
-| `SavePersistenceTests` (EditMode) | 9 | save/load, unlocking, corruption recovery, offline queue |
+| `SavePersistenceTests` (EditMode) | 15 | save/load, unlocking, corruption recovery, offline queue, **session-history round-trip, cap and reset** |
 | `AdaptiveLoopIntegrationTests` (PlayMode) | 3 | the whole loop connected end to end |
 | `PlayerAndHazardTests` (PlayMode) | 12 | movement, collision, jumping, pause, Blood Count, hazards, **corridor edge barriers** |
 | `PuzzleFlowTests` (PlayMode) | 17 | stations, picking, answering, timing, hints, objectives, exit gating, panel visibility and Escape recovery |
@@ -59,6 +59,7 @@ which is why `PuzzleContentTests` reports 26 cases from 11 methods).
 | `PuzzleAffordanceTests` (PlayMode) | 7 | **hover highlighting and camera orbit during world-picking puzzles** |
 | `HostileCombatTests` (PlayMode) | 9 | wrong answer spawns one tagged leukemic blast, kill delivers that question's hint, score penalty and clear-level bonus, respawn |
 | `StateAndSceneTests` (PlayMode) | 13 | bootstrapping, scene loading, state machine, panel visibility |
+| `DashboardAndAudioTests` (PlayMode) | 9 | **finishing or failing a level writes a history record**, the dashboard reads it back and survives an empty profile, and each gameplay event fires its audio cue |
 
 ## TC coverage map
 
@@ -87,6 +88,8 @@ which is why `PuzzleContentTests` reports 26 cases from 11 methods).
 | TC-21 A* pathfinding | **Yes** | Pass | No | Grid, routes, clearance, blockades, **and that all three levels are completable** |
 | TC-22 Obstacles in play | **Mostly** | Pass | Partly | Grid build, movement, no tunnelling, no stuck recoveries, tier speed. **Whether a chase feels threatening is MANUAL REQUIRED** |
 | TC-23 Performance / 60 FPS | No | — | **MANUAL REQUIRED** | Batch mode has no renderer; frame timing there is meaningless |
+| TC-25 Dashboard | **Mostly** | Pass | Partly | Record writing, aggregation, history ordering, cap and empty-profile handling automated. **Whether the panel is readable, and clicking Profile, are MANUAL REQUIRED** |
+| TC-26 Audio cues | **Mostly** | Pass | Partly | Every cue file generates, loads, and fires on the right event. **Whether any of it sounds acceptable is MANUAL REQUIRED — batch mode has no audio device** |
 | TC-24 Combat and earned hints | **Mostly** | Pass | Partly | Spawn-on-wrong-answer, puzzle tagging, kill→hint delivery, score penalty/bonus and respawn all automated. **Whether the blast reads as threatening rather than annoying is MANUAL REQUIRED** |
 
 The PlayMode suites are the only ones that prove the layers are *connected*; the
@@ -399,7 +402,7 @@ Record the test machine's CPU, GPU and resolution alongside the result.
 # MANUAL PLAYTEST CHECKLIST
 
 Only things that genuinely cannot be automated. Everything else above is covered by
-the 194 automated checks — do not re-test it by hand.
+the 209 automated checks — do not re-test it by hand.
 
 Open `Assets/Scenes/MainMenu.unity`, press Play.
 
@@ -435,6 +438,13 @@ Open `Assets/Scenes/MainMenu.unity`, press Play.
 15d. Level 3: does the blue pulmonary artery read as "deoxygenated", and is the moderator band legible as a structure rather than scenery?
 15e. Level 3 has six agents against Level 1's three. Is that dense or merely noisy?
 
+### D3. Dashboard and audio (new in Phase 9)
+15f. Main menu > **Profile**: does the panel open, and are both columns readable at your resolution? Nothing automated has ever clicked this button.
+15g. Play a level to the end, return to the menu, reopen Profile — does your attempt appear in RECENT ATTEMPTS with sensible numbers?
+15h. On a fresh profile (Settings > Reset Local Progress), does the dashboard say "no attempts recorded yet" rather than showing a confident 0%?
+15i. **Audio:** are the six cues audible, correctly timed, and not annoying? They are procedurally generated placeholder tones, not designed sound — judge whether they are good enough to keep or should be replaced with real assets.
+15j. Does the master volume slider in Settings actually scale the cues?
+
 ### E. Anatomical accuracy review (needs your subject knowledge)
 16. Read all 44 explanations. Confirm mitral = bicuspid, aortic/pulmonary = semilunar with three cusps, papillary muscles anchor via chordae tendineae, septum divides the ventricles, pulmonary artery carries deoxygenated blood.
 17. Confirm the Level 1 layout reads as a left ventricle to someone who knows the anatomy.
@@ -453,6 +463,22 @@ Open `Assets/Scenes/MainMenu.unity`, press Play.
 24. Does the puzzle panel obscure the structure it is asking about?
 
 ---
+
+## Manual review needed — Phase 8 open questions
+
+Three questions Phase 8 raised that **cannot be settled by any test**, logged here
+rather than guessed at. They are awaiting playtest notes; nothing in Level 2 or
+Level 3's gameplay or content should be tuned until those notes exist, or the
+tuning is just as uninformed as the guess would have been.
+
+| # | Question | Why no test can answer it |
+|---|---|---|
+| **MR-1** | **Does Level 2's thrombus read as a teaching moment?** Walk into the sealed basilar, then find the way round via a carotid and the Circle of Willis. Does that land as *discovering collateral circulation*, or merely as a wall and a detour? | The A* check proves the route exists and that the clot blocks. Whether the player *understands why* is exactly the thing a pathfinding assertion cannot see. |
+| **MR-2** | **Are the six new puzzles and Level 2's structure anatomically sound?** Review the wording of `lv2_id_circle_of_willis`, `lv2_id_basilar_artery`, `lv2_drag_internal_carotid`, `lv3_id_right_ventricle`, `lv3_valve_backflow_atrium`, `lv3_drag_pulmonary_artery`; and confirm the carotid/vertebrobasilar split and the collateral-bypass claim hold up. | Automated tests verify a target id resolves to tagged geometry. They cannot verify the sentence is *true*. Needs subject knowledge. |
+| **MR-3** | **Is Level 2's 10.4x detour instructive or tedious?** The collateral route measures 93.8 units against a 9.0 unit straight line. | A ratio is measurable; whether it is *enjoyable* is not. Tuning it without playtest notes would be guesswork dressed as a fix. |
+
+MR-1 and MR-3 are covered in practice by checklist items 15a-15b, MR-2 by 17a-17b.
+They are restated here because they are decisions pending, not just steps to perform.
 
 ## Known limitations at Phase 8
 

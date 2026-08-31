@@ -13,8 +13,8 @@ demonstrable — nothing is "half wired up and finished later".
 | 6 | DDA + A* + performance tracking integration | **Done** |
 | 7 | Firebase Auth, Firestore, session logging, offline queue | **Deferred** — blocked on manual SDK setup |
 | 8 | Levels 2 and 3 in full, more puzzles | **Done** |
-| 9 | Performance dashboard, UI polish, audio, animation | Next |
-| 10 | White-box testing, functional and performance testing, UAT preparation | |
+| 9 | Performance dashboard, UI polish, audio, animation | **Done** |
+| 10 | White-box testing, functional and performance testing, UAT preparation | Next |
 
 > **Phase 7 is deliberately out of order.** It needs three things that cannot be done
 > from inside the project: the Firebase Unity SDK (a Google download, not a UPM
@@ -362,11 +362,68 @@ with no Play mode and no human.
 **Exit criterion met:** 194 automated checks - 93 self-check assertions plus 101
 NUnit cases (35 EditMode, 66 PlayMode) - all passing.
 
-## Phase 9 — Dashboard and polish
+## Phase 9 — Dashboard and polish (complete)
 
-`UI/DashboardUI.cs` reading completed levels, accuracy, mean response time, difficulty
-reached, puzzles completed, mistakes, hints used and session history. Then audio,
-animation and visual polish — last, per the PSM1 priority order.
+Delivered: `UI/DashboardUI.cs`, `Core/AudioManager.cs`, `Gameplay/AudioCueListener.cs`,
+`Editor/Generation/AudioFactory.cs`, `SessionRecord` and the session history on
+`SaveManager`, plus `SceneFactory.BuildDashboardPanel()`.
+
+**The dashboard needed a data source that did not exist.** Phase 9 asks for session
+history, but nothing in the project had ever persisted a finished attempt:
+`PendingSessionLogs` is an empty list explicitly marked "Populated in Phase 7", and
+`PerformanceTracker` holds only the *current* session in memory, so it is empty on
+the main menu and gone after a restart.
+
+So `SessionRecord` and `PlayerProgress.SessionHistory` were added - a local record
+of finished attempts, capped at 20. It is deliberately **not** the same list as
+`PendingSessionLogs`: that one is Phase 7's Firestore upload queue and gets drained
+on a successful sync, so a dashboard reading it would erase itself the first time
+the game went online. A test asserts the two stay separate.
+
+This is not Phase 7 work done early. Nothing here authenticates, uploads, or talks
+to Firebase; it is local persistence of the kind `SaveManager` already does, and it
+is the prerequisite for the dashboard rather than a stand-in for the backend.
+
+**Dashboard.** Opened from the main menu's Profile button, which previously showed a
+placeholder notice. Two columns: aggregates (levels completed, accuracy, mean
+response, wrong answers, puzzles failed, hints, difficulty reached, score, time
+played) and the most recent eight attempts. Accuracy is computed from summed puzzle
+counts rather than by averaging each attempt's percentage, so a two-puzzle attempt
+does not weigh the same as a fifteen-puzzle one. On a profile with no history it says
+so, rather than showing a confident 0% that reads as "you scored nothing".
+
+**Audio.** Six cues - correct, wrong, hint, damage, level complete, click - generated
+as WAV files by `AudioFactory` rather than imported, for the same reason the scenes
+and materials are generated: the project commits no binary it cannot rebuild from
+source. They are **placeholder tones and the report should say so**; the claim being
+made is that the right event makes a sound at the right moment, not that it sounds
+good. `AudioCueListener` lives in Gameplay and subscribes to existing events, so no
+gameplay class learns that audio exists and `AudioManager` stays in Core without
+reaching upward. Master volume needed no work - `SettingsPanel` already drives
+`AudioListener.volume`.
+
+### The bug this phase found
+
+`PerformanceTracker` began a level only on a **state transition** into Playing. But
+`SetState` ignores a transition to the state it is already in, so a level entered
+while already Playing - a restart, or replaying the same level - raised no event,
+`BeginLevel` never ran, and `FinishLevel` then early-returned on a None active
+level. That level recorded **nothing**: no metrics, no dashboard entry, silently.
+
+It had been latent since Phase 3 and no existing test caught it, because every test
+reached a level through a state change. The Phase 9 test asserting that *dying*
+writes a history record is what exposed it. Fixed by beginning the level from
+`SessionChanged`, which `NotifyLevelStarted` always raises, rather than from the
+state edge.
+
+**Exit criterion met:** 209 automated checks - 93 self-check assertions plus 116
+NUnit cases (41 EditMode, 75 PlayMode) - all passing.
+
+**Not done, and deliberately:** animation beyond what already existed. Station
+bobbing, the solved-state colour change and structure highlighting were built in
+earlier phases; nothing further was added, because the PSM1 priority order puts
+visual polish last and the remaining budget is better spent on Phase 10 and the
+manual playtest that has still never happened.
 
 ## Phase 10 — Testing
 

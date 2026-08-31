@@ -102,6 +102,7 @@ in the Windows build.
 | `PauseMenuUI.cs` | Resume / Restart / Settings / Exit. Owns the `Esc` handling. |
 | `LevelResultUI.cs` | Level-complete and attempt-failed panels, driven purely by `GameState`. |
 | `SettingsPanel.cs` | Volume, sensitivity, fullscreen, invert-Y, reset progress. Stored in `PlayerPrefs`. |
+| `DashboardUI.cs` *(Phase 9)* | The performance dashboard. Reads `SaveManager` only, never the live tracker, so it works on the main menu and after a restart. |
 
 ### Data (Phase 2)
 
@@ -153,6 +154,40 @@ in the Windows build.
 | `PathfindingAgent.cs` | Requests, follows and re-requests paths. Moves through a CharacterController. Applies the DDA speed multiplier. Detects and recovers from being stuck. |
 | `ObstacleAgent.cs` | Behaviour on top of the agent: chase (neutrophil) or patrol (monocyte), plus contact damage. |
 | `ObstacleManager.cs` | Scene registry; can disable all obstacles wholesale for the fixed-difficulty control condition. **Excludes leukemic blasts** — they reuse `ObstacleAgent`, so a naive scan would count them as neutrophils and the control switch would disable the hostiles. |
+
+### Dashboard, session history and audio (Phase 9)
+
+| Script | Responsibility |
+|---|---|
+| `UI/DashboardUI.cs` | Aggregates and lists finished attempts. Lives on the canvas, not the panel it toggles. |
+| `Core/AudioManager.cs` | Plays cue clips loaded from Resources. Knows nothing about gameplay. |
+| `Gameplay/AudioCueListener.cs` | Subscribes to puzzle, health and state events and turns them into cues. |
+| `Editor/Generation/AudioFactory.cs` | Synthesises the six cue WAVs. Editor-only. |
+
+**Two lists, not one.** `PlayerProgress.SessionHistory` is the player's own record and
+is never drained. `PlayerProgress.PendingSessionLogs` is Phase 7's Firestore upload
+queue and *is* drained on a successful sync. Merging them would mean the dashboard
+empties itself the first time the game goes online; a test asserts they stay
+separate.
+
+**Why the dashboard does not read `PerformanceTracker`.** The tracker holds the
+current session in memory. It is empty on the main menu, which is exactly where the
+dashboard is opened from, and it is gone after a restart. Only the save file
+satisfies both "show me something before I have played today" and "show me last
+week".
+
+**Why audio is a listener, not calls in gameplay.** `AudioManager` is in Core, which
+may not know the Gameplay or Player layers. Putting `PlayCue` calls inside
+`PuzzleManager` would also give a gameplay class an audio dependency it has no reason
+to carry. `AudioCueListener` sits in Gameplay - which may know both - and joins them,
+the same shape `PerformanceTracker` uses for metrics.
+
+**A level is begun from `SessionChanged`, not from the state edge.** `SetState`
+ignores a transition to the state it is already in, so entering a level while already
+Playing (a restart, or replaying the same level) raised no event and the level was
+never begun - recording no metrics and no dashboard entry, silently. Latent since
+Phase 3. `NotifyLevelStarted` always raises `SessionChanged`, so that is the reliable
+signal.
 
 ### Combat and the hint economy (Phase 6)
 

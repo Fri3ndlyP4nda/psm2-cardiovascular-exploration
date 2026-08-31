@@ -211,6 +211,9 @@ namespace Cardio.EditorTools
             SettingsPanel settings = BuildSettingsPanel(canvas.transform);
             settings.gameObject.SetActive(false);
 
+            // ---- Performance dashboard (Phase 9) ----
+            DashboardUI dashboard = BuildDashboardPanel(canvas.transform);
+
             // ---- Footer ----
             TMP_Text signedIn = UIFactory.CreateText(canvas.transform, "SignedInLabel", "Signed in as: Guest",
                 22f, TextAlignmentOptions.TopLeft, UIFactory.ColorTextDim);
@@ -235,6 +238,7 @@ namespace Cardio.EditorTools
                 w.Set("rootPanel", rootPanel.gameObject);
                 w.Set("levelSelectPanel", levelPanel.gameObject);
                 w.Set("settingsPanel", settings);
+                w.Set("dashboard", dashboard);
                 w.Set("level1Button", level1);
                 w.Set("level2Button", level2);
                 w.Set("level3Button", level3);
@@ -1209,6 +1213,50 @@ namespace Cardio.EditorTools
         // ------------------------------------------------------------------
         // Settings panel (shared by the main menu and the pause menu)
         // ------------------------------------------------------------------
+
+        /// <summary>
+        /// Builds the Phase 9 performance dashboard.
+        ///
+        /// The component is added to the CANVAS, not to the panel, because
+        /// DashboardUI.Awake deactivates its own panelRoot. A component that
+        /// deactivates the object it lives on never runs Awake at load and can
+        /// never be shown again - the soft-lock documented in ARCHITECTURE.md.
+        /// </summary>
+        private static DashboardUI BuildDashboardPanel(Transform canvasTransform)
+        {
+            RectTransform panel = UIFactory.CreateRect(canvasTransform, "DashboardPanel");
+            UIFactory.SetRect(panel, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(1500f, 820f));
+            UIFactory.CreatePanel(panel, "Background", UIFactory.ColorPanel);
+
+            TMP_Text header = UIFactory.CreateText(panel, "Header", "PERFORMANCE", 42f,
+                TextAlignmentOptions.Center, UIFactory.ColorTextLight, FontStyles.Bold);
+            UIFactory.SetRect(header.rectTransform, new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -52f), new Vector2(1400f, 54f));
+
+            // Two columns: aggregates on the left, attempt history on the right.
+            TMP_Text summary = UIFactory.CreateText(panel, "SummaryLabel", string.Empty, 24f,
+                TextAlignmentOptions.TopLeft, UIFactory.ColorTextLight);
+            UIFactory.SetRect(summary.rectTransform, new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(390f, -420f), new Vector2(700f, 620f));
+
+            TMP_Text history = UIFactory.CreateText(panel, "HistoryLabel", string.Empty, 21f,
+                TextAlignmentOptions.TopLeft, UIFactory.ColorTextDim);
+            UIFactory.SetRect(history.rectTransform, new Vector2(1f, 1f), new Vector2(1f, 1f), new Vector2(-390f, -420f), new Vector2(700f, 620f));
+
+            Button close = UIFactory.CreateButton(panel, "Btn_CloseDashboard", "BACK", new Vector2(360f, 48f), 20f);
+            UIFactory.SetRect(close.GetComponent<RectTransform>(), new Vector2(0.5f, 0f), new Vector2(0.5f, 0f), new Vector2(0f, 54f), new Vector2(360f, 48f));
+
+            var dashboard = canvasTransform.gameObject.AddComponent<DashboardUI>();
+            using (var w = new EditorWiring(dashboard))
+            {
+                w.Set("panelRoot", panel.gameObject);
+                w.Set("closeButton", close);
+                w.Set("headerLabel", header);
+                w.Set("summaryLabel", summary);
+                w.Set("historyLabel", history);
+            }
+
+            panel.gameObject.SetActive(false);
+            return dashboard;
+        }
 
         private static SettingsPanel BuildSettingsPanel(Transform parent)
         {

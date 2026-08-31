@@ -159,6 +159,30 @@ namespace Cardio.DDA
             if (gm == null) return;
 
             gm.StateChanged += OnGameStateChanged;
+            gm.SessionChanged += OnSessionChanged;
+        }
+
+        /// <summary>
+        /// Starts tracking a level when it becomes the current one.
+        ///
+        /// StateChanged alone is not enough. SetState ignores a transition to
+        /// the state it is already in, so a level entered while already Playing
+        /// - a restart, or replaying the same level - raised no event and
+        /// BeginLevel never ran. That level then accumulated nothing, because
+        /// FinishLevel early-returns on a None active level: its metrics and
+        /// its dashboard record were both silently lost.
+        ///
+        /// NotifyLevelStarted always raises SessionChanged, so this fires even
+        /// when the state does not change. Found by a Phase 9 test asserting
+        /// that dying writes a history record.
+        /// </summary>
+        private void OnSessionChanged(SessionData session)
+        {
+            if (session == null) return;
+            if (GameManager.Instance == null || GameManager.Instance.State != GameState.Playing) return;
+            if (session.CurrentLevel == LevelId.None || session.CurrentLevel == _activeLevel) return;
+
+            BeginLevel(session.CurrentLevel);
         }
 
         // ------------------------------------------------------------------
@@ -217,9 +241,45 @@ namespace Cardio.DDA
 
             if (verboseLogging) Debug.Log($"[PerformanceTracker] Level finished - {record}");
 
+            PersistSessionRecord(record);
+
             // The level is left "active" so a retry keeps accumulating into the
             // same record; BeginLevel only resets when the level actually changes.
             if (completed) _activeLevel = LevelId.None;
+        }
+
+        /// <summary>
+        /// Writes one finished attempt into the local history the dashboard reads.
+        ///
+        /// This lives here rather than in GameManager because the architecture
+        /// only lets metrics be written in one place, and because Core is not
+        /// allowed to know about the DDA layer - so the tracker listens for the
+        /// state change instead of being called by it, exactly as it already
+        /// does for puzzles and health.
+        /// </summary>
+        private void PersistSessionRecord(LevelPerformance record)
+        {
+            SaveManager save = GameManager.Instance != null ? GameManager.Instance.Save : null;
+            if (save == null) return;
+
+            SessionData session = GameManager.Instance.Session;
+
+            save.AppendSessionRecord(new SessionRecord
+            {
+                DateUtc = System.DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm"),
+                DisplayName = session != null ? session.DisplayName : "Guest",
+                Level = (int)record.Level,
+                Score = record.Score,
+                PuzzlesAttempted = record.PuzzlesAttempted,
+                PuzzlesCorrect = record.PuzzlesCorrect,
+                IncorrectAnswers = record.IncorrectAnswers,
+                PuzzlesFailed = record.PuzzlesFailed,
+                HintsUsed = record.HintsUsed,
+                FinalDifficulty = (int)record.FinalDifficulty,
+                AverageResponseSeconds = record.AverageResponseSeconds,
+                DurationSeconds = record.DurationSeconds,
+                Completed = record.Completed
+            });
         }
 
         // ------------------------------------------------------------------

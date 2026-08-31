@@ -24,6 +24,7 @@ namespace Cardio.UI
         [SerializeField] private GameObject rootPanel;
         [SerializeField] private GameObject levelSelectPanel;
         [SerializeField] private SettingsPanel settingsPanel;
+        [SerializeField] private DashboardUI dashboard;
 
         [Header("Level select")]
         [SerializeField] private Button level1Button;
@@ -121,9 +122,17 @@ namespace Cardio.UI
 
         private void OnProfile()
         {
-            // Honest placeholder: the profile screen depends on Firebase Auth
-            // (Phase 7) and the performance dashboard (Phase 9).
-            ShowNotice("Profile and dashboard arrive in Phase 7 / Phase 9.");
+            // The dashboard half of this screen landed in Phase 9 and reads the
+            // local save history. The *account* half still depends on Firebase
+            // Auth, so the panel names the player from local progress and says
+            // nothing it cannot back up.
+            if (dashboard == null)
+            {
+                ShowNotice("Dashboard unavailable - re-run PSM2 > Setup > Build or Rebuild Project.");
+                return;
+            }
+
+            dashboard.Open();
         }
 
         private void OnSettings()

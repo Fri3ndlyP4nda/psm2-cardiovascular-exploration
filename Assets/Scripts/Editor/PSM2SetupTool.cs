@@ -88,6 +88,7 @@ namespace Cardio.EditorTools
                 // PuzzleManager is wired to its bank asset during generation.
                 // Existing banks are preserved - see QuestionBankFactory.
                 EditorUtility.DisplayProgressBar("PSM2 Setup", "Seeding question banks...", 0.5f);
+                AudioFactory.CreateCues();
                 QuestionBankFactory.CreateBanks(forceReseed: false);
 
                 // DDAManager loads this from Resources at runtime, so it must
