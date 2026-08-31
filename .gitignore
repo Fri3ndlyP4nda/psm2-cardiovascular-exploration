@@ -8,10 +8,18 @@
 /[Mm]emoryCaptures/
 /[Rr]ecordings/
 
-# Never commit Firebase credentials
-google-services.json
-GoogleService-Info.plist
-/Assets/StreamingAssets/google-services-desktop.json
+# Never commit backend secrets.
+#
+# The Supabase ANON key IS committed, deliberately - it is designed to be
+# embedded in clients, carries the `anon` role, and grants nothing because every
+# table has Row Level Security enabled. See SupabaseConfig.cs.
+#
+# A service_role key is the opposite: it bypasses RLS entirely. It must never be
+# committed, and SupabaseManager refuses to start if it finds one.
+.env
+.env.*
+**/service_role*
+**/supabase_secret*
 
 # Visual Studio / Rider / VS Code
 .vs/

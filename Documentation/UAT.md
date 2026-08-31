@@ -122,8 +122,10 @@ Recorded honestly because they affect how the results can be read:
   tuning, not a failed study — report it as such.
 - **`HintSource.Requested` is unreachable.** The hint button was removed, so
   questionnaire item 9 is about *automatic* and *earned* hints only.
-- **Firebase is not integrated.** Data stays on the machine and must be collected by
-  hand. There is no cross-device history and no account.
+- **Supabase sync has never completed a live round-trip.** The offline queue is
+  fully tested, but anonymous sign-ins were still disabled when it was built, so no
+  row has reached the server. Assume data is local until you have verified otherwise,
+  and collect `psm2_progress.json` by hand regardless.
 - **Levels 2 and 3 have never been seen by anyone.** They pass their navigability
   checks, but their pacing is entirely unvalidated — see MR-1 and MR-3 in TESTING.md.
 - **Audio is placeholder tones.** Reactions to sound should not be read as reactions to

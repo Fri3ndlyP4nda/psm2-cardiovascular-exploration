@@ -1,0 +1,18 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: cd42c660aeafaac4f99a95a799d1c75c, type: 3}
+  m_Name: SupabaseConfig
+  m_EditorClassIdentifier: Cardio.Runtime::Cardio.Backend.SupabaseConfig
+  ProjectUrl: https://vevmzzgikpqyjoudunho.supabase.co
+  AnonKey: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZldm16emdpa3BxeWpvdWR1bmhvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODgxNjgwMTEsImV4cCI6MjEwMzc0NDAxMX0.siEVJhhP1nIMEwqk481UGm8Xh-UOywxFw2qFgwznL4U
+  SyncEnabled: 1
+  TimeoutSeconds: 10

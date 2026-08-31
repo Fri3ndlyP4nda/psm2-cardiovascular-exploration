@@ -12,7 +12,7 @@ namespace Cardio.Core
     ///   * owns pause / resume (Time.timeScale) and cursor locking
     ///   * exposes the other persistent services (scene loading, saving)
     ///
-    /// It does NOT know about puzzles, DDA, pathfinding or Firebase. Those
+    /// It does NOT know about puzzles, DDA, pathfinding or the backend. Those
     /// systems will subscribe to its events instead of being called from here,
     /// which keeps this class from growing into a god object.
     ///

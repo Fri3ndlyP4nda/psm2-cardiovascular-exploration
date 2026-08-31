@@ -8,8 +8,8 @@ namespace Cardio.Core
     /// It survives scene loads because it lives on the persistent GameManager.
     ///
     /// PSM1 mapping: this object is the in-memory shape of the SESSION_LOGS
-    /// Firestore document. Phase 3 (PerformanceTracker) will write the accuracy
-    /// and response-time fields; Phase 7 (FirestoreManager) will upload it.
+    /// SESSION_LOGS row. Phase 3 (PerformanceTracker) writes the accuracy
+    /// and response-time fields; Phase 7 (SessionLogManager) uploads it.
     /// The fields exist now so that later phases only add producers, never
     /// have to reshape the data model.
     /// </summary>

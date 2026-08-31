@@ -11,7 +11,7 @@ namespace Cardio.Core
     /// With this bootstrapper the game can be started from any scene.
     ///
     /// Later phases add their managers to the same GameObject here
-    /// (DDAManager, PerformanceTracker, FirebaseManager, ...).
+    /// (DDAManager, PerformanceTracker, SupabaseManager, ...).
     /// </summary>
     public static class GameBootstrap
     {
@@ -43,6 +43,12 @@ namespace Cardio.Core
             go.AddComponent<Cardio.Gameplay.HintManager>();
             go.AddComponent<Cardio.Gameplay.AudioCueListener>();
             go.AddComponent<Cardio.DDA.DDAManager>();
+
+            // Backend last: it reads GameManager.Save on Start, and everything
+            // above it must work unchanged when these are absent or offline.
+            go.AddComponent<Cardio.Backend.SupabaseManager>();
+            go.AddComponent<Cardio.Backend.AuthenticationManager>();
+            go.AddComponent<Cardio.Backend.SessionLogManager>();
         }
     }
 }

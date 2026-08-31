@@ -1,4 +1,4 @@
-# Testing — Phase 10
+# Testing — Phase 10 (all phases implemented)
 
 White-box test procedures for the systems that exist today. Each case names the script
 under test, so the PSM2 report can map a test back to a code path.
@@ -25,8 +25,8 @@ paths. It does **not** exercise uGUI: no button is clicked, no chip is dragged, 
 
 ## Automated coverage
 
-238 automated checks run without a human — 120 self-check assertions plus 118 NUnit
-test cases (41 EditMode, 77 PlayMode). Run them before every commit.
+250 automated checks run without a human — 120 self-check assertions plus 130 NUnit
+test cases (41 EditMode, 89 PlayMode). Run them before every commit.
 
 **None of them proves the game is playable by a person.** Not one clicks a button,
 renders a frame, or hears a sound. That distinction is the whole point of the table
@@ -65,6 +65,7 @@ which is why `PuzzleContentTests` reports 26 cases from 11 methods).
 | `HostileCombatTests` (PlayMode) | 9 | wrong answer spawns one tagged leukemic blast, kill delivers that question's hint, score penalty and clear-level bonus, respawn |
 | `StateAndSceneTests` (PlayMode) | 13 | bootstrapping, scene loading, state machine, panel visibility |
 | `FullLoopFunctionalTests` (PlayMode) | 2 | **a whole level played start to finish**: every openable station solved, tracker/objective/save/dashboard all agreeing at the end |
+| `SupabaseSyncTests` (PlayMode) | 12 | **offline queueing, reconnection, flush order, mid-flush disconnect**, SESSION_LOGS payload mapping, and the anon-key guard — all against a scripted transport, never the live server |
 | `DashboardAndAudioTests` (PlayMode) | 9 | **finishing or failing a level writes a history record**, the dashboard reads it back and survives an empty profile, and each gameplay event fires its audio cue |
 
 ## TC coverage map
@@ -94,6 +95,7 @@ which is why `PuzzleContentTests` reports 26 cases from 11 methods).
 | TC-21 A* pathfinding | **Yes** | Pass | No | Grid, routes, clearance, blockades, **and that all three levels are completable** |
 | TC-22 Obstacles in play | **Mostly** | Pass | Partly | Grid build, movement, no tunnelling, no stuck recoveries, tier speed. **Whether a chase feels threatening is MANUAL REQUIRED** |
 | TC-23 Performance / 60 FPS | **Partly** | Design: Pass | **MANUAL REQUIRED** | `PerformanceBudgetCheck` verifies the decisions credited for the target — no real-time shadows, shadow casting/receiving off, environment static-batched, ≤16 shared materials, 160-unit far clip. **It does not and cannot measure FPS**: batch mode has no renderer. The number itself needs the HUD counter on the target laptop |
+| TC-27 Supabase sync / offline queue | **Mostly** | Pass | **Partly** | Queueing, ordering, reconnect flush, mid-flush disconnect, rejected-row handling, payload columns and the FailedAttempts→LevelFailures mapping all automated against a fake transport. **A live round-trip to the real project is MANUAL REQUIRED and has never been performed** |
 | TC-25 Dashboard | **Mostly** | Pass | Partly | Record writing, aggregation, history ordering, cap and empty-profile handling automated. **Whether the panel is readable, and clicking Profile, are MANUAL REQUIRED** |
 | TC-26 Audio cues | **Mostly** | Pass | Partly | Every cue file generates, loads, and fires on the right event. **Whether any of it sounds acceptable is MANUAL REQUIRED — batch mode has no audio device** |
 | TC-24 Combat and earned hints | **Mostly** | Pass | Partly | Spawn-on-wrong-answer, puzzle tagging, kill→hint delivery, score penalty/bonus and respawn all automated. **Whether the blast reads as threatening rather than annoying is MANUAL REQUIRED** |
@@ -192,7 +194,7 @@ Covers the "Play from any scene" requirement and the singleton guard in
 
 | # | Step | Expected |
 |---|---|---|
-| 1 | Press Login or Register | A message states Firebase auth is Phase 7. No fake success, no crash |
+| 1 | Press Login or Register | Sign-in is now silent and anonymous (Supabase); these buttons are vestigial. Confirm neither fakes a success nor throws |
 | 2 | Type a display name, press Continue as Guest | The main menu shows "Signed in as: <name>" |
 | 3 | Relaunch | The name persists (stored in `psm2_progress.json`) |
 
@@ -438,7 +440,7 @@ each is undecidable by test.
 # MANUAL PLAYTEST CHECKLIST
 
 Only things that genuinely cannot be automated. Everything else above is covered by
-the 238 automated checks — do not re-test it by hand.
+the 250 automated checks — do not re-test it by hand.
 
 Open `Assets/Scenes/MainMenu.unity`, press Play.
 
@@ -481,6 +483,13 @@ Open `Assets/Scenes/MainMenu.unity`, press Play.
 15i. **Audio:** are the six cues audible, correctly timed, and not annoying? They are procedurally generated placeholder tones, not designed sound — judge whether they are good enough to keep or should be replaced with real assets.
 15j. Does the master volume slider in Settings actually scale the cues?
 
+### D4. Supabase sync (new in Phase 7 — never verified live)
+15k. Enable **Authentication → Sign In / Providers → Anonymous sign-ins** in the Supabase dashboard, then launch the game. The Console should log `[Supabase] Signed in anonymously as <uuid>`.
+15l. Finish a level, then check **Table Editor → session_logs** in Supabase. A row should appear with your level, accuracy and difficulty tier.
+15m. Confirm `failed_attempts` holds Blood-Count-zero count, **not** wrong answers — die once on purpose and check the number.
+15n. Disconnect the network, finish a level, confirm play is uninterrupted and `PendingSessionLogs` in `psm2_progress.json` grows. Reconnect, relaunch, confirm the queue drains and the row appears in Supabase.
+15o. Relaunch twice and confirm both sessions report the **same** user id — a new id each launch means the refresh token is not persisting.
+
 ### E. Anatomical accuracy review (needs your subject knowledge)
 16. Read all 44 explanations. Confirm mitral = bicuspid, aortic/pulmonary = semilunar with three cusps, papillary muscles anchor via chordae tendineae, septum divides the ventricles, pulmonary artery carries deoxygenated blood.
 17. Confirm the Level 1 layout reads as a left ventricle to someone who knows the anatomy.
@@ -520,8 +529,10 @@ They are restated here because they are decisions pending, not just steps to per
 
 Stated explicitly so they are not mistaken for defects:
 
-1. Firebase is not integrated. Login and Register are inert and say so on screen.
-   Metrics are collected but stay in memory and in the local save file.
+1. **Supabase sync has never completed a live round-trip.** The client, auth and
+   offline queue are implemented and tested, but anonymous sign-ins were disabled in
+   the dashboard when this was built, so no row has ever reached the server. Until
+   that toggle is on and a live write is confirmed, treat all data as local-only.
 2. **No human has played the game.** Simulated input now drives real movement,
    jumping, pausing and interaction, so the gap is narrower than it was — but
    nothing has exercised **uGUI**: no button has been clicked, no label dragged, no

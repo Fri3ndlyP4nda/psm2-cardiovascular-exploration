@@ -10,7 +10,7 @@ namespace Cardio.Core
     ///
     /// Phase 1 scope: unlock/completion state and the last used profile name.
     /// Phase 7 will add the offline queue of SESSION_LOGS documents that
-    /// FirestoreManager uploads once connectivity returns (PSM1 NFR4). The
+    /// SessionLogManager uploads once connectivity returns (PSM1 NFR4). The
     /// <see cref="PendingSessionLogs"/> list is already part of the save file
     /// format so that adding the sync layer does not invalidate save files
     /// produced during earlier testing.
@@ -20,7 +20,7 @@ namespace Cardio.Core
     /// history to show.
     ///
     /// Deliberately NOT the same thing as <see cref="PlayerProgress.PendingSessionLogs"/>.
-    /// That list is Phase 7's Firestore upload queue - things not yet sent. This
+    /// That list is Phase 7's Supabase upload queue - things not yet sent. This
     /// one is the player's own record and is never drained. Merging them would
     /// mean the dashboard empties itself the first time a sync succeeds.
     ///
@@ -39,6 +39,17 @@ namespace Cardio.Core
         public int IncorrectAnswers;
         public int PuzzlesFailed;
         public int HintsUsed;
+
+        /// <summary>
+        /// Times Blood Count reached zero during this attempt.
+        ///
+        /// This is the PSM1 report's FailedAttempts column. It is NOT
+        /// IncorrectAnswers - that counts wrong answers. Added in Phase 7
+        /// because the SESSION_LOGS schema needs it and nothing was carrying it
+        /// out of LevelPerformance.
+        /// </summary>
+        public int LevelFailures;
+
         public int FinalDifficulty;
         public float AverageResponseSeconds;
         public float DurationSeconds;
@@ -59,8 +70,26 @@ namespace Cardio.Core
         /// <summary>Level ids (ints) the player has finished at least once.</summary>
         public List<int> CompletedLevels = new List<int>();
 
-        /// <summary>Session summaries that have not yet reached Firestore. Populated in Phase 7.</summary>
+        /// <summary>
+        /// Session summaries that have not yet reached Supabase.
+        ///
+        /// The offline queue (PSM1 NFR4). Each entry is one serialised
+        /// SESSION_LOGS row. Drained by SessionLogManager when a upload
+        /// succeeds; never read by the dashboard - see SessionHistory below,
+        /// which is a different list for a different purpose.
+        /// </summary>
         public List<string> PendingSessionLogs = new List<string>();
+
+        /// <summary>
+        /// The anonymous Supabase user this install signs in as.
+        ///
+        /// Persisted so the same identity is reused across launches. Without it
+        /// every launch would create a new anonymous user and strand the
+        /// previous one's rows. See AuthenticationManager for the security
+        /// trade-off of keeping the refresh token here.
+        /// </summary>
+        public string SupabaseUserId = string.Empty;
+        public string SupabaseRefreshToken = string.Empty;
 
         /// <summary>Finished level attempts, newest last. Capped; see SaveManager.MaxSessionHistory.</summary>
         public List<SessionRecord> SessionHistory = new List<SessionRecord>();
@@ -89,6 +118,16 @@ namespace Cardio.Core
 
         public PlayerProgress Progress { get; private set; } = new PlayerProgress();
 
+        /// <summary>
+        /// Raised after an attempt is appended to the local history.
+        ///
+        /// The upload path listens to this rather than being called by the
+        /// tracker, so the Supabase layer stays optional: strip it out and the
+        /// game still records everything locally, which is what the offline
+        /// story requires anyway.
+        /// </summary>
+        public event System.Action<SessionRecord> SessionRecorded;
+
         /// <summary>Full path of the save file. Shown in the Settings panel for troubleshooting.</summary>
         public string SavePath => Path.Combine(Application.persistentDataPath, FileName);
 
@@ -112,6 +151,8 @@ namespace Cardio.Core
                         // JsonUtility leaves null lists when a field was absent in an older file.
                         Progress.CompletedLevels ??= new List<int>();
                         Progress.PendingSessionLogs ??= new List<string>();
+                        Progress.SupabaseUserId ??= string.Empty;
+                        Progress.SupabaseRefreshToken ??= string.Empty;
                         return;
                     }
                 }
@@ -170,6 +211,7 @@ namespace Cardio.Core
             if (excess > 0) Progress.SessionHistory.RemoveRange(0, excess);
 
             SaveNow();
+            SessionRecorded?.Invoke(record);
         }
 
         /// <summary>Most recent attempts, newest first, at most <paramref name="count"/>.</summary>

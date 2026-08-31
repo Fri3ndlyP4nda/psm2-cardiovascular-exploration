@@ -21,7 +21,7 @@ namespace Cardio.DDA
     /// It lives on the persistent [Cardio Systems] object so a session that
     /// spans several levels produces one record per level
     /// (<see cref="LevelPerformance"/>), which is exactly the granularity
-    /// Firestore's SESSION_LOGS collection wants in Phase 7.
+    /// the SESSION_LOGS table wants in Phase 7.
     ///
     /// Re-attachment is driven by <c>SceneManager.sceneLoaded</c> rather than by
     /// gameplay calling in, so the dependency arrow keeps pointing one way:
@@ -275,6 +275,7 @@ namespace Cardio.DDA
                 IncorrectAnswers = record.IncorrectAnswers,
                 PuzzlesFailed = record.PuzzlesFailed,
                 HintsUsed = record.HintsUsed,
+                LevelFailures = record.LevelFailures,
                 FinalDifficulty = (int)record.FinalDifficulty,
                 AverageResponseSeconds = record.AverageResponseSeconds,
                 DurationSeconds = record.DurationSeconds,

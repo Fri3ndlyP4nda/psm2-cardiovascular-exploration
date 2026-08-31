@@ -43,7 +43,7 @@ namespace Cardio.EditorTools
             "Assets/Scripts/AI",        // Phase 5: A* pathfinding
             "Assets/Scripts/DDA",       // Phase 4: dynamic difficulty
             "Assets/Scripts/UI",
-            "Assets/Scripts/Firebase",  // Phase 7: auth + Firestore
+            "Assets/Scripts/Supabase",  // Phase 7: auth + session logs
             "Assets/Scripts/Editor",
             "Assets/Scripts/Editor/Generation"
         };

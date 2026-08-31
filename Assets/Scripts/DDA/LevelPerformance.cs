@@ -7,7 +7,7 @@ namespace Cardio.DDA
     /// <summary>
     /// Everything measured for one level during this session.
     ///
-    /// The field list is deliberately the shape of a Firestore SESSION_LOGS
+    /// The field list is deliberately the shape of a Supabase SESSION_LOGS
     /// document (PSM1 section 20), so Phase 7 can serialise one of these per
     /// level without reshaping anything. It is also what the Phase 9 dashboard
     /// reads.

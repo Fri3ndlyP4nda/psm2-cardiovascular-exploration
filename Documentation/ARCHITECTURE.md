@@ -39,7 +39,7 @@ to be added without editing Phase 1 or 2 code.
 | UI | `Assets/Scripts/UI` | Core, Player |
 | AI *(Phase 5)* | `Assets/Scripts/AI` | Core, DDA |
 | DDA *(Phase 4)* | `Assets/Scripts/DDA` | Core |
-| Firebase *(Phase 7)* | `Assets/Scripts/Firebase` | Core |
+| Backend *(Phase 7)* | `Assets/Scripts/Supabase` | Core |
 | Editor tooling | `Assets/Scripts/Editor` | everything (editor-only, never in a build) |
 
 ### Assemblies (Phase 6)
@@ -68,7 +68,7 @@ in the Windows build.
 | `GameManager.cs` | Singleton. Owns `GameState`, `SessionData`, pause, cursor mode, and navigation helpers. Raises `StateChanged` / `SessionChanged`. |
 | `GameSceneManager.cs` | Async scene loading with fade in/out and a minimum load time. Named `GameSceneManager` to avoid shadowing `UnityEngine.SceneManagement.SceneManager`. |
 | `SaveManager.cs` | JSON progress file: unlocked levels, completed levels, last profile. Already carries the `PendingSessionLogs` list that Phase 7 will use for offline sync. |
-| `SessionData.cs` | In-memory shape of the Firestore `SESSION_LOGS` document. Metrics fields exist now; producers arrive in Phase 3. |
+| `SessionData.cs` | In-memory shape of a `SESSION_LOGS` row. Metrics fields exist now; producers arrive in Phase 3. |
 | `GameConstants.cs` | Scene names, tags, layers, level↔scene mapping, PlayerPrefs keys. |
 | `GameEnums.cs` | `GameState`, `DifficultyTier`, `LevelId`. |
 
@@ -129,7 +129,7 @@ in the Windows build.
 | Script | Responsibility |
 |---|---|
 | `PerformanceTracker.cs` | The MEASURE stage. Listens to `PuzzleManager` and `PlayerHealth`, keeps one `LevelPerformance` per level, mirrors aggregates onto `SessionData`. Lives on the persistent systems object; re-attaches on `sceneLoaded`. |
-| `LevelPerformance.cs` | Per-level record. Field list is deliberately the shape of a Firestore SESSION_LOGS document. |
+| `LevelPerformance.cs` | Per-level record. Field list is deliberately the shape of a SESSION_LOGS row. |
 | `PerformanceSnapshot.cs` | Readonly view of current form (session **and** recent-window). The single input Phase 4's DDA reads. |
 | `ScoreRules.cs` | Pure scoring function + Inspector-tunable `ScoreSettings`. No Unity state, so it is verifiable without a scene. |
 
@@ -155,6 +155,42 @@ in the Windows build.
 | `ObstacleAgent.cs` | Behaviour on top of the agent: chase (neutrophil) or patrol (monocyte), plus contact damage. |
 | `ObstacleManager.cs` | Scene registry; can disable all obstacles wholesale for the fixed-difficulty control condition. **Excludes leukemic blasts** — they reuse `ObstacleAgent`, so a naive scan would count them as neutrophils and the control switch would disable the hostiles. |
 
+### Backend / Supabase (Phase 7)
+
+| Script | Responsibility |
+|---|---|
+| `SupabaseConfig.cs` | Project URL and anon key, as a Resources asset. Decodes the key and can say whether it is really an anon key. |
+| `ISupabaseTransport.cs` | The HTTP seam, plus the production `UnityWebRequest` implementation. |
+| `SupabaseManager.cs` | The REST client. Owns config and transport; knows nothing about sessions or auth flow. |
+| `AuthenticationManager.cs` | Anonymous sign-in, and persistence of that identity across launches. |
+| `SessionLogManager.cs` | Serialises attempts into SESSION_LOGS rows and owns the offline queue. |
+
+**No SDK.** Supabase is PostgREST and GoTrue over HTTPS, so `UnityWebRequest` is
+sufficient and `Packages/manifest.json` gained nothing. This also removes the platform
+caveat Firebase carried — there is no desktop-specific behaviour to work around.
+
+**The transport is an interface so the queue can be tested.** Nobody unplugs their
+router while finishing a level, which makes offline handling the part of this phase
+most likely to be wrong and least likely to be caught by hand. The fake can be told to
+fail, recover, and fail again mid-flush. Same pattern `PlayerInputReader` uses.
+
+**Two lists, still.** `SessionHistory` (Phase 9) is the player's own record and is
+never drained. `PendingSessionLogs` is the upload queue and exists to be emptied.
+Merging them would mean a successful sync wiped the dashboard.
+
+**The anon key is committed on purpose, and that is only safe because of RLS.** The key
+carries the `anon` role and grants nothing by itself; every table has Row Level
+Security with policies keyed on `auth.uid()`. Verified live rather than assumed — an
+unauthenticated insert is rejected with Postgres `42501`. Without RLS the same key
+would give full access to anyone who ran `strings` on the executable, so the safety
+comes from the policies, not from hiding the key. `SupabaseManager` refuses to start
+on a `service_role` key.
+
+**Queue-then-upload, never upload-then-queue.** A crash between "upload failed" and
+"write the queue" would otherwise lose the attempt. The flush trigger is a successful
+sign-in, because there is no reliable way to ask the OS whether the internet works and
+a completed sign-in is proof the server answered a moment ago.
+
 ### Dashboard, session history and audio (Phase 9)
 
 | Script | Responsibility |
@@ -165,7 +201,7 @@ in the Windows build.
 | `Editor/Generation/AudioFactory.cs` | Synthesises the six cue WAVs. Editor-only. |
 
 **Two lists, not one.** `PlayerProgress.SessionHistory` is the player's own record and
-is never drained. `PlayerProgress.PendingSessionLogs` is Phase 7's Firestore upload
+is never drained. `PlayerProgress.PendingSessionLogs` is Phase 7's Supabase upload
 queue and *is* drained on a successful sync. Merging them would mean the dashboard
 empties itself the first time the game goes online; a test asserts they stay
 separate.
@@ -479,7 +515,7 @@ Attachment points already in place:
 | DDAManager (4) | writes `SessionData.CurrentDifficulty`; HUD already displays it |
 | HintManager (4) | `GameplayHUD.ShowHint()` and `AnatomyMarker.SetHighlighted()` |
 | ObstacleManager / A* (5) | new agents; `HazardVolume` shows the damage contract they should use |
-| FirebaseManager (7) | `SessionData` serialises directly; `SaveManager.PendingSessionLogs` is the offline queue |
+| SessionLogManager (7) | `SessionData` serialises directly; `SaveManager.PendingSessionLogs` is the offline queue |
 | DashboardUI (9) | reads `SaveManager.Progress` and stored session logs |
 
 ## 8. Performance decisions
