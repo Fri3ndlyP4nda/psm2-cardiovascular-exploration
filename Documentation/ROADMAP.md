@@ -12,8 +12,8 @@ demonstrable — nothing is "half wired up and finished later".
 | 5 | A* grid, pathfinding agents, neutrophils, monocytes, obstacles | **Done** |
 | 6 | DDA + A* + performance tracking integration | **Done** |
 | 7 | Firebase Auth, Firestore, session logging, offline queue | **Deferred** — blocked on manual SDK setup |
-| 8 | Levels 2 and 3 in full, more puzzles | Next |
-| 9 | Performance dashboard, UI polish, audio, animation | |
+| 8 | Levels 2 and 3 in full, more puzzles | **Done** |
+| 9 | Performance dashboard, UI polish, audio, animation | Next |
 | 10 | White-box testing, functional and performance testing, UAT preparation | |
 
 > **Phase 7 is deliberately out of order.** It needs three things that cannot be done
@@ -52,8 +52,9 @@ All five PSM1 puzzle formats are implemented and all five appear in Level 1:
 | Valve identification | clicking the valve | "Click the semilunar valve of the left heart" |
 | Multiple choice | panel buttons | "Which chamber has the thickest wall?" |
 
-**Question bank:** 38 puzzles — 14 for Level 1, 12 each for Levels 2 and 3, stored as
-sub-assets of three `QuestionBank` assets in `Assets/Data`. Every puzzle carries a
+**Question bank:** 38 puzzles at the close of Phase 2 — 14 for Level 1, 12 each for
+Levels 2 and 3 — stored as sub-assets of three `QuestionBank` assets in `Assets/Data`.
+(Phase 8 raised Levels 2 and 3 to 15 each, for 44 in total.) Every puzzle carries a
 complexity rating of 1–3, which is the filter Phase 4's DDA will drive.
 
 **Answering in the world.** A structure puzzle is answered by pointing at the actual
@@ -263,7 +264,7 @@ wrong answers spawn anything at all. Scores: −10 per hostile spawned, +25 once
 question in the level is answered.
 
 **Exit criterion met:** 168 automated checks — 72 headless self-check assertions plus
-96 NUnit test cases (30 EditMode, 66 PlayMode) — all passing, and the game has been
+96 NUnit test cases (30 EditMode, 66 PlayMode) — all passing at the close of Phase 6, and the game has been
 observed running end to end.
 
 ## Phase 7 — Firebase (deferred)
@@ -304,11 +305,62 @@ Offline handling (PSM1 NFR4): on failure, serialise the session into
 queue when connectivity returns. `LoginUI` already has the two methods that need to
 change, and nothing else in the game touches auth.
 
-## Phase 8 — Levels 2 and 3
+## Phase 8 — Levels 2 and 3 (complete)
 
-Replace the two placeholder rooms. Level 2: branching cerebral vessels, narrow paths,
-maze structure, static blockades, moving obstacles. Level 3: right ventricle with
-higher obstacle density and the hardest questions.
+Delivered: `EnvironmentFactory.BuildCerebralVessels()`, `BuildRightVentricle()`,
+`BuildJunctionDisc()`, `SceneFactory.CreateLevel2Scene()`, `CreateLevel3Scene()`,
+six new world-picking puzzles, and the A* navigability checks that prove both
+levels can actually be finished.
+
+Both placeholder rooms are gone, along with `BuildPlaceholderRoom` and
+`CreatePlaceholderLevelScene` - dead code whose "scheduled for Phase 8" sign would
+now be a lie.
+
+**Level 2 - cerebral circulation.** A branching vessel network rather than a room:
+paired internal carotids and a vertebrobasilar trunk converging on the Circle of
+Willis, built as a genuine ring because that is what it is. Corridors are 6 units
+wide against Level 1's 7, for the narrow paths the phase asked for.
+
+The static blockade is a thrombus that **seals the basilar outright**. That is the
+level's teaching mechanism, not an obstacle: the only way through is the long way
+round via a carotid and across the ring, which is precisely what the Circle of
+Willis exists to do, and what `lv2_mc_collateral` and `lv2_mc_ischaemic_stroke`
+ask about. The self-check measures the detour at 93.8 units against a 9.0 unit
+straight line.
+
+**Level 3 - right ventricle.** Built to contrast with Level 1 rather than mirror it,
+because the differences are the content: a visibly thinner wall (1.4 against 2.2),
+a three-cusp tricuspid inflow, a pulmonary artery rendered in deoxygenated blue,
+the septum on the opposite side, and a moderator band the left ventricle has no
+equivalent of. Six agents against Level 1's three - the highest density in the game.
+
+**New puzzles.** Both banks went from 12 to 15, the ceiling PSM1 section 25 allows.
+Before this phase neither level had a single world-picking puzzle, because neither
+had tagged anatomy; all five formats are now reachable in Level 3 and four in
+Level 2. **Level 2 has no valve puzzle on purpose** - cerebral arteries have no
+valves, and a test now asserts its absence so it cannot be mistaken for an oversight.
+
+### The bug this phase found, and the rule that came out of it
+
+The first Level 2 build was **completely unplayable**: every station unreachable,
+the spawn point sealed inside a wall. Nothing in the existing suite caught it,
+because every other automated test in the project loads Level 1.
+
+`BuildCorridor` always emits two full-length side walls, so composing a T-junction
+from two overlapping corridors lays walls straight across the through-route. A
+second, subtler instance survived the first fix: corridor walls extending several
+units *into* a junction still split it down the middle.
+
+The rule, now stated in ARCHITECTURE: **every junction is a disc, never two crossing
+corridors**, and corridors butt at the disc edge rather than reaching inside it.
+
+The lasting fix is the check, not the geometry. `AStarSelfCheck` now asserts that
+every puzzle station and the exit are reachable from the spawn in Levels 2 and 3 -
+the property that makes a level completable at all, fully decidable from the grid
+with no Play mode and no human.
+
+**Exit criterion met:** 194 automated checks - 93 self-check assertions plus 101
+NUnit cases (35 EditMode, 66 PlayMode) - all passing.
 
 ## Phase 9 — Dashboard and polish
 

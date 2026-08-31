@@ -82,22 +82,56 @@ namespace Cardio.Tests
         }
 
         [Test]
-        public void Level1_StructureTargets_ExistInTheScene()
+        public void StructureTargets_ExistInTheirScene([ValueSource(nameof(Levels))] LevelId level)
         {
             // A typo'd TargetStructureId produces a puzzle that can never be
             // answered. The scene YAML is searched rather than opened so this
             // stays an EditMode test.
-            string scenePath = $"Assets/Scenes/{GameConstants.SceneLevel1}.unity";
+            //
+            // Widened from Level 1 only in Phase 8: Levels 2 and 3 gained real
+            // tagged anatomy and world-picking puzzles, so they need the same
+            // protection. Before that they had no world-picking content and the
+            // loop below would simply have found nothing to check.
+            string scenePath = $"Assets/Scenes/{GameConstants.SceneNameFor(level)}.unity";
             Assert.IsTrue(System.IO.File.Exists(scenePath), $"missing {scenePath}");
 
             string yaml = System.IO.File.ReadAllText(scenePath);
 
-            foreach (PuzzleData puzzle in LoadBank(LevelId.Level1_LeftVentricle).Puzzles)
+            foreach (PuzzleData puzzle in LoadBank(level).Puzzles)
             {
                 if (!puzzle.Type.UsesWorldPicking()) continue;
 
                 StringAssert.Contains(puzzle.TargetStructureId, yaml,
-                    $"{puzzle.PuzzleId} targets '{puzzle.TargetStructureId}', absent from Level 1");
+                    $"{puzzle.PuzzleId} targets '{puzzle.TargetStructureId}', absent from {level}");
+            }
+        }
+
+        [Test]
+        public void EveryBank_OffersAllFivePuzzleFormats([ValueSource(nameof(Levels))] LevelId level)
+        {
+            // Phase 8 acceptance: each level must exercise all five PSM1 formats,
+            // not just the two that can be answered inside the panel.
+            //
+            // The brain is the documented exception. Cerebral arteries have no
+            // valves, so a ValveIdentification puzzle there would teach an
+            // anatomical falsehood; that level is required to cover the other
+            // four instead.
+            var seen = new HashSet<PuzzleType>();
+            foreach (PuzzleData puzzle in LoadBank(level).Puzzles) seen.Add(puzzle.Type);
+
+            CollectionAssert.Contains(seen, PuzzleType.IdentifyStructure, $"{level} has no identify-structure puzzle");
+            CollectionAssert.Contains(seen, PuzzleType.DragAndDropLabel, $"{level} has no drag-and-drop puzzle");
+            CollectionAssert.Contains(seen, PuzzleType.BloodFlowSequence, $"{level} has no blood-flow sequence puzzle");
+            CollectionAssert.Contains(seen, PuzzleType.MultipleChoice, $"{level} has no multiple-choice puzzle");
+
+            if (level != LevelId.Level2_Brain)
+            {
+                CollectionAssert.Contains(seen, PuzzleType.ValveIdentification, $"{level} has no valve puzzle");
+            }
+            else
+            {
+                CollectionAssert.DoesNotContain(seen, PuzzleType.ValveIdentification,
+                    "Level 2 must not contain a valve puzzle - cerebral arteries have no valves");
             }
         }
 

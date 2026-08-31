@@ -132,38 +132,293 @@ namespace Cardio.EditorTools
         // Levels 2 and 3 - honest placeholders
         // ------------------------------------------------------------------
 
+        // ------------------------------------------------------------------
+        // Level 2 - Cerebral circulation (Phase 8)
+        // ------------------------------------------------------------------
+
         /// <summary>
-        /// A small greybox room with a sign explaining that the real level is
-        /// scheduled for Phase 8. It exists so that scene flow, build settings
-        /// and level unlocking can be tested end to end from Phase 1 without
-        /// pretending the level is finished.
+        /// Builds the arterial supply to the brain as a branching, maze-like
+        /// vessel network.
+        ///
+        /// Anatomy represented (blood flows in the correct direction):
+        ///   vertebral arteries -> basilar artery -------------\
+        ///                                                      > CIRCLE OF WILLIS -> cerebral arteries -> exit
+        ///   internal carotid arteries -> middle cerebral -----/
+        ///
+        /// The Circle of Willis is built as a genuine ring because that is what
+        /// it is: an anastomosis joining the anterior (carotid) and posterior
+        /// (vertebrobasilar) supplies. Its purpose is collateral flow, and this
+        /// level teaches that structurally rather than only in text - a
+        /// thrombus seals the basilar route, so the only way through is the long
+        /// way round via a carotid and across the ring. That is precisely what
+        /// the Circle of Willis exists to do, and the same fact the
+        /// lv2_mc_collateral and lv2_mc_ischaemic_stroke questions ask about.
+        ///
+        /// EVERY JUNCTION IS A DISC, never two crossing corridors. BuildCorridor
+        /// always emits two full-length side walls, so a corridor crossing
+        /// another lays walls straight across it: the first version of this
+        /// level sealed its own spawn point inside a wall and left the whole
+        /// southern half unreachable. A junction disc is a floor with a ring
+        /// wall broken by a gap per corridor, so no wall ever crosses a route.
+        /// The A* navigability check asserts the result.
+        ///
+        /// Corridors are 6 units wide against Level 1's 7, giving the "narrow
+        /// paths" the roadmap asks for without pinching the grid shut.
         /// </summary>
-        public static LevelEnvironment BuildPlaceholderRoom(string name, string headline, string body, Material wallMaterial)
+        public static LevelEnvironment BuildCerebralVessels()
         {
-            var root = new GameObject($"Environment_{name}");
+            var root = new GameObject("Environment_CerebralCirculation");
 
-            GameObject floor = CreateBlock(root.transform, "Floor", new Vector3(0f, -0.5f, 0f), new Vector3(40f, 1f, 40f), ProjectAssets.Endocardium);
-            floor.GetComponent<Renderer>().sharedMaterial = ProjectAssets.Endocardium;
+            const float vesselWidth = 6f;
+            const float vesselHeight = 8f;
 
-            // Four perimeter walls.
-            CreateBlock(root.transform, "Wall_N", new Vector3(0f, 4f, 20f), new Vector3(40f, 8f, 1.5f), wallMaterial);
-            CreateBlock(root.transform, "Wall_S", new Vector3(0f, 4f, -20f), new Vector3(40f, 8f, 1.5f), wallMaterial);
-            CreateBlock(root.transform, "Wall_E", new Vector3(20f, 4f, 0f), new Vector3(1.5f, 8f, 40f), wallMaterial);
-            CreateBlock(root.transform, "Wall_W", new Vector3(-20f, 4f, 0f), new Vector3(1.5f, 8f, 40f), wallMaterial);
+            // ---- The Circle of Willis: a ring with four openings ----
+            GameObject ringFloor = CreateFloorDisc(root.transform, "Floor_CircleOfWillis", Vector3.zero, 20f);
+            BuildRingWall(root.transform, 10f, 32, vesselHeight,
+                          new[]
+                          {
+                              new Vector2(0f, 40f),     // +Z  cerebral arteries, to the exit
+                              new Vector2(90f, 40f),    // +X  right middle cerebral
+                              new Vector2(180f, 40f),   // -Z  basilar inflow
+                              new Vector2(270f, 40f)    // -X  left middle cerebral
+                          },
+                          thickness: 1.8f);
 
-            // A couple of blocks so movement and the camera collision can be tested.
-            CreateBlock(root.transform, "Block_A", new Vector3(-6f, 1.5f, 4f), new Vector3(4f, 3f, 4f), wallMaterial);
-            CreateBlock(root.transform, "Block_B", new Vector3(7f, 1.5f, -5f), new Vector3(4f, 3f, 4f), wallMaterial);
+            // ---- Junction discs ----
+            BuildJunctionDisc(root.transform, "Junction_VertebralInlet", new Vector3(0f, 0f, -33f), 7f,
+                              new[] { new Vector2(0f, 62f), new Vector2(90f, 62f), new Vector2(270f, 62f) });
+            BuildJunctionDisc(root.transform, "Junction_CarotidBend_NW", new Vector3(-26f, 0f, -33f), 6f,
+                              new[] { new Vector2(0f, 68f), new Vector2(90f, 68f) });
+            BuildJunctionDisc(root.transform, "Junction_CarotidBend_NE", new Vector3(26f, 0f, -33f), 6f,
+                              new[] { new Vector2(0f, 68f), new Vector2(270f, 68f) });
+            BuildJunctionDisc(root.transform, "Junction_CarotidTop_W", new Vector3(-26f, 0f, 0f), 6f,
+                              new[] { new Vector2(180f, 68f), new Vector2(90f, 68f) });
+            BuildJunctionDisc(root.transform, "Junction_CarotidTop_E", new Vector3(26f, 0f, 0f), 6f,
+                              new[] { new Vector2(180f, 68f), new Vector2(270f, 68f) });
 
-            BuildPlaqueHazard(root.transform, "Hazard_FattyPlaque", new Vector3(0f, 0f, 8f), new Vector3(5f, 1.2f, 5f), 10);
+            // ---- Posterior supply: vertebrals merging into the basilar ----
+            GameObject basilar = BuildCorridor(root.transform, "Corridor_BasilarArtery",
+                                               new Vector3(0f, 0f, -18f), new Vector3(vesselWidth, vesselHeight, 19f));
 
-            CreateWorldLabel(root.transform, $"{headline}\n<size=55%>{body}</size>", new Vector3(0f, 5f, 12f), 3.2f, 18f);
+            // ---- Anterior supply: the two internal carotids ----
+            GameObject carotidW = BuildCorridor(root.transform, "Corridor_InternalCarotid_W",
+                                                new Vector3(-13.5f, 0f, -33f), new Vector3(vesselWidth, vesselHeight, 16f));
+            carotidW.transform.localRotation = Quaternion.Euler(0f, 90f, 0f);
+            GameObject carotidE = BuildCorridor(root.transform, "Corridor_InternalCarotid_E",
+                                                new Vector3(13.5f, 0f, -33f), new Vector3(vesselWidth, vesselHeight, 16f));
+            carotidE.transform.localRotation = Quaternion.Euler(0f, 90f, 0f);
 
-            Transform spawn = CreateAnchor(root.transform, "SpawnPoint", new Vector3(0f, 1.2f, -14f), Quaternion.identity);
-            Transform exit = CreateAnchor(root.transform, "ExitAnchor", new Vector3(0f, 1.5f, 16f), Quaternion.identity);
+            GameObject carotidRiseW = BuildCorridor(root.transform, "Corridor_CarotidAscending_W",
+                                                    new Vector3(-26f, 0f, -16.5f), new Vector3(vesselWidth, vesselHeight, 24f));
+            GameObject carotidRiseE = BuildCorridor(root.transform, "Corridor_CarotidAscending_E",
+                                                    new Vector3(26f, 0f, -16.5f), new Vector3(vesselWidth, vesselHeight, 24f));
+
+            GameObject mcaW = BuildCorridor(root.transform, "Corridor_MiddleCerebral_W",
+                                            new Vector3(-15f, 0f, 0f), new Vector3(vesselWidth, vesselHeight, 13f));
+            mcaW.transform.localRotation = Quaternion.Euler(0f, 90f, 0f);
+            GameObject mcaE = BuildCorridor(root.transform, "Corridor_MiddleCerebral_E",
+                                            new Vector3(15f, 0f, 0f), new Vector3(vesselWidth, vesselHeight, 13f));
+            mcaE.transform.localRotation = Quaternion.Euler(0f, 90f, 0f);
+
+            // ---- Outflow: cerebral arteries to the cortex ----
+            GameObject cerebral = BuildCorridor(root.transform, "Corridor_CerebralArteries",
+                                                new Vector3(0f, 0f, 19.25f), new Vector3(vesselWidth, vesselHeight, 21.5f));
+
+            // ---- Static blockades ----
+            // The thrombus fully seals the basilar. That is deliberate and it is
+            // the point of the level: the direct route is closed, so the player
+            // has to find the collateral path. Both carotids stay open, which
+            // the A* navigability check asserts on every run.
+            GameObject thrombus = CreateBlock(root.transform, "Blockade_BasilarThrombus",
+                                              new Vector3(0f, 2.5f, -18f), new Vector3(vesselWidth, 5f, 2.2f),
+                                              ProjectAssets.Plaque);
+            int obstacleLayer = LayerMask.NameToLayer(GameConstants.LayerObstacle);
+            if (obstacleLayer >= 0) thrombus.layer = obstacleLayer;
+
+            // Chicanes narrowing the ascending carotids without closing them,
+            // which is what makes the run read as a vessel rather than a hallway.
+            CreateBlock(root.transform, "Blockade_Atheroma_W", new Vector3(-27.4f, 2f, -8f),
+                        new Vector3(2.4f, 4f, 3f), ProjectAssets.Plaque);
+            CreateBlock(root.transform, "Blockade_Atheroma_E", new Vector3(27.4f, 2f, -24f),
+                        new Vector3(2.4f, 4f, 3f), ProjectAssets.Plaque);
+
+            BuildPlaqueHazard(root.transform, "Hazard_Atherosclerosis_Carotid",
+                              new Vector3(-24.6f, 0f, -20f), new Vector3(3f, 1.2f, 3f), 10);
+
+            // ---- Educational signage, and the tags that make picking work ----
+            CreateAnatomyMarker(root.transform, "circle_of_willis", "Circle of Willis",
+                "A ring of arteries at the base of the brain joining the carotid and vertebrobasilar supplies. If one route is blocked, blood can still arrive by another.",
+                new Vector3(0f, 6f, 0f), 12f, new[] { ringFloor.GetComponent<Renderer>() });
+
+            CreateAnatomyMarker(root.transform, "basilar_artery", "Basilar Artery",
+                "Formed where the two vertebral arteries merge. It supplies the brainstem and cerebellum and feeds the back of the Circle of Willis.",
+                new Vector3(0f, 5.5f, -25f), 11f, basilar.GetComponentsInChildren<Renderer>());
+
+            CreateAnatomyMarker(root.transform, "internal_carotid", "Internal Carotid Arteries",
+                "The paired anterior supply. Each enters the skull and joins the Circle of Willis, together carrying most of the brain's blood.",
+                new Vector3(-26f, 5.5f, -16f), 12f,
+                Combine(Combine(carotidW.GetComponentsInChildren<Renderer>(), carotidE.GetComponentsInChildren<Renderer>()),
+                        Combine(carotidRiseW.GetComponentsInChildren<Renderer>(), carotidRiseE.GetComponentsInChildren<Renderer>())));
+
+            CreateAnatomyMarker(root.transform, "middle_cerebral_artery", "Middle Cerebral Artery",
+                "The largest branch off the Circle of Willis, and the vessel most often involved in an ischaemic stroke.",
+                new Vector3(17f, 5.5f, 0f), 10f,
+                Combine(mcaW.GetComponentsInChildren<Renderer>(), mcaE.GetComponentsInChildren<Renderer>()));
+
+            CreateAnatomyMarker(root.transform, "cerebral_arteries", "Cerebral Arteries",
+                "The vessels carrying blood from the Circle of Willis out across the cortex, where the exchange the brain depends on takes place.",
+                new Vector3(0f, 5.5f, 21f), 11f, cerebral.GetComponentsInChildren<Renderer>());
+
+            CreateAnatomyMarker(root.transform, "thrombus", "Thrombus",
+                "A clot blocking the vessel. An occlusion here is what causes an ischaemic stroke - the tissue downstream loses its supply.",
+                new Vector3(0f, 5f, -20f), 8f, new[] { thrombus.GetComponent<Renderer>() });
+
+            // Only the cerebral corridor ends in open space; every other corridor
+            // end butts into a junction disc, which is enclosed by its own wall.
+            CreateInvisibleBarrier(root.transform, "Barrier_CerebralEnd", new Vector3(0f, 4f, 29.5f), new Vector3(8f, 8f, 0.5f));
+
+            Transform spawn = CreateAnchor(root.transform, "SpawnPoint", new Vector3(0f, 1.2f, -35f), Quaternion.identity);
+            Transform exit = CreateAnchor(root.transform, "ExitAnchor", new Vector3(0f, 1.5f, 26f), Quaternion.identity);
 
             MarkStatic(root);
             return new LevelEnvironment { Root = root, SpawnPoint = spawn, ExitAnchor = exit };
+        }
+
+        /// <summary>
+        /// A floor disc enclosed by a ring wall with a gap per attached corridor.
+        ///
+        /// This is how branches are made. Two crossing corridors would lay their
+        /// side walls across each other's route; a disc has no internal walls at
+        /// all, so every corridor meeting it stays connected.
+        /// </summary>
+        private static void BuildJunctionDisc(Transform parent, string name, Vector3 centre, float radius, Vector2[] gaps)
+        {
+            var junction = new GameObject(name);
+            junction.transform.SetParent(parent, false);
+            junction.transform.localPosition = centre;
+
+            CreateFloorDisc(junction.transform, "Floor", Vector3.zero, radius * 2f);
+            BuildRingWall(junction.transform, radius, 24, 8f, gaps, thickness: 1.6f);
+        }
+
+
+        // ------------------------------------------------------------------
+        // Level 3 - Right Ventricle (Phase 8)
+        // ------------------------------------------------------------------
+
+        /// <summary>
+        /// Builds the right ventricle and the start of the pulmonary circuit.
+        ///
+        /// Anatomy represented (blood flows in the correct direction):
+        ///   right atrium -> TRICUSPID VALVE (3 cusps) -> right ventricle
+        ///   -> PULMONARY VALVE (semilunar) -> pulmonary artery -> lungs
+        ///
+        /// Deliberately built to contrast with Level 1 rather than mirror it,
+        /// because the differences are the teaching content:
+        ///  * the wall is visibly thinner (1.4 against Level 1's 2.2) - the RV
+        ///    pumps to the lungs at roughly a fifth of the left ventricle's
+        ///    pressure, so its myocardium is far thinner;
+        ///  * the inflow valve has three cusps, not two;
+        ///  * the outflow vessel is rendered in the deoxygenated blue, because
+        ///    the pulmonary artery is the one artery carrying deoxygenated
+        ///    blood - the most commonly misremembered fact in this topic;
+        ///  * the septum sits on the +X side, since the right ventricle is on
+        ///    the opposite side of it from the left;
+        ///  * the moderator band is present, which the left ventricle has no
+        ///    equivalent of.
+        /// </summary>
+        public static LevelEnvironment BuildRightVentricle()
+        {
+            var root = new GameObject("Environment_RightVentricle");
+
+            const float chamberRadius = 13f;
+            const float wallHeight = 11f;
+
+            GameObject floor = CreateFloorDisc(root.transform, "Floor_Endocardium", Vector3.zero, chamberRadius * 2f);
+
+            // A thinner wall than Level 1's: this is the low-pressure pump.
+            BuildRingWall(root.transform, chamberRadius, 34, wallHeight,
+                          new[] { new Vector2(0f, 36f), new Vector2(180f, 36f) },
+                          thickness: 1.4f);
+
+            // ---- Inflow: the tricuspid valve, three cusps ----
+            BuildCorridor(root.transform, "Corridor_RightAtrium", new Vector3(0f, 0f, -19f), new Vector3(7f, 8f, 13f));
+            Renderer[] tricuspidFlaps = BuildValveFlaps(root.transform, "Valve_Tricuspid",
+                                                        new Vector3(0f, 0f, -13f), 6.5f, leaflets: 3);
+
+            // ---- Outflow: pulmonary valve into the pulmonary artery ----
+            GameObject pulmonaryArtery = BuildCorridor(root.transform, "Corridor_PulmonaryArtery",
+                                                       new Vector3(0f, 0f, 20f), new Vector3(7f, 8f, 15f),
+                                                       wallMaterial: ProjectAssets.Deoxygenated);
+            Renderer[] pulmonaryFlaps = BuildValveFlaps(root.transform, "Valve_Pulmonary",
+                                                        new Vector3(0f, 0f, 13f), 6.5f, leaflets: 3);
+
+            // ---- Papillary muscles: the right ventricle has three ----
+            var papillary = new List<Renderer>();
+            papillary.Add(CreateBlock(root.transform, "PapillaryMuscle_Anterior",
+                                      new Vector3(-4.8f, 2.2f, -2.5f), new Vector3(1.8f, 4.4f, 1.8f), ProjectAssets.MuscleWall).GetComponent<Renderer>());
+            papillary.Add(CreateBlock(root.transform, "PapillaryMuscle_Posterior",
+                                      new Vector3(4.8f, 2.2f, -2.5f), new Vector3(1.8f, 4.4f, 1.8f), ProjectAssets.MuscleWall).GetComponent<Renderer>());
+            papillary.Add(CreateBlock(root.transform, "PapillaryMuscle_Septal",
+                                      new Vector3(7.2f, 2.2f, 3.5f), new Vector3(1.8f, 4.4f, 1.8f), ProjectAssets.MuscleWall).GetComponent<Renderer>());
+
+            // ---- Moderator band: unique to the right ventricle ----
+            // Raised above head height so it reads as a crossing band without
+            // closing the cavity to the player or to the A* grid.
+            GameObject moderatorBand = CreateBlock(root.transform, "ModeratorBand",
+                                                   new Vector3(2.5f, 5.4f, 0f), new Vector3(11f, 1.3f, 1.6f), ProjectAssets.MuscleWallDark);
+
+            // ---- Interventricular septum, on the far side from Level 1 ----
+            GameObject septum = CreateBlock(root.transform, "InterventricularSeptum",
+                                            new Vector3(11.6f, 4f, 0f), new Vector3(2.5f, 8f, 12f), ProjectAssets.MuscleWallDark);
+
+            BuildPlaqueHazard(root.transform, "Hazard_FattyPlaque_Pulmonary", new Vector3(-2.1f, 0f, 19f), new Vector3(4f, 1.2f, 4f), 10);
+
+            // ---- Educational signage ----
+            CreateAnatomyMarker(root.transform, "right_ventricle", "Right Ventricle",
+                "Pumps deoxygenated blood to the lungs. Its wall is far thinner than the left ventricle's, because the pulmonary circuit needs much less pressure.",
+                new Vector3(0f, 6.5f, 0f), 12f, new[] { floor.GetComponent<Renderer>() });
+
+            CreateAnatomyMarker(root.transform, "tricuspid_valve", "Tricuspid Valve",
+                "Three cusps between the right atrium and right ventricle. It closes as the ventricle contracts so blood cannot return to the atrium.",
+                new Vector3(0f, 5f, -13f), 10f, tricuspidFlaps);
+
+            CreateAnatomyMarker(root.transform, "pulmonary_valve", "Pulmonary Valve",
+                "A semilunar valve with three cusps at the outlet. It opens to let blood into the pulmonary artery, then seals so it cannot drain back.",
+                new Vector3(0f, 5f, 13f), 10f, pulmonaryFlaps);
+
+            CreateAnatomyMarker(root.transform, "pulmonary_artery", "Pulmonary Artery",
+                "The only artery carrying deoxygenated blood. It leaves the right ventricle and divides to both lungs.",
+                new Vector3(0f, 5.5f, 22f), 11f, pulmonaryArtery.GetComponentsInChildren<Renderer>());
+
+            CreateAnatomyMarker(root.transform, "moderator_band", "Moderator Band",
+                "A muscular band crossing the right ventricle, carrying part of the conduction system to the anterior papillary muscle. The left ventricle has no equivalent.",
+                new Vector3(2.5f, 6.4f, 0f), 9f, new[] { moderatorBand.GetComponent<Renderer>() });
+
+            CreateAnatomyMarker(root.transform, "papillary_muscle", "Papillary Muscles",
+                "Three muscular pillars anchoring the tricuspid cusps through the chordae tendineae, holding them shut against ventricular pressure.",
+                new Vector3(0f, 5.5f, -2.5f), 9f, papillary.ToArray());
+
+            CreateAnatomyMarker(root.transform, "interventricular_septum", "Interventricular Septum",
+                "The muscular wall between the ventricles. From this side, the left ventricle lies on the far face.",
+                new Vector3(11.6f, 7f, 0f), 9f, new[] { septum.GetComponent<Renderer>() });
+
+            CreateInvisibleBarrier(root.transform, "Barrier_AtriumEnd", new Vector3(0f, 4f, -25.5f), new Vector3(9f, 8f, 0.5f));
+            CreateInvisibleBarrier(root.transform, "Barrier_PulmonaryEnd", new Vector3(0f, 4f, 27.5f), new Vector3(9f, 8f, 0.5f));
+
+            Transform spawn = CreateAnchor(root.transform, "SpawnPoint", new Vector3(0f, 1.2f, -20f), Quaternion.identity);
+            Transform exit = CreateAnchor(root.transform, "ExitAnchor", new Vector3(0f, 1.5f, 25f), Quaternion.identity);
+
+            MarkStatic(root);
+            return new LevelEnvironment { Root = root, SpawnPoint = spawn, ExitAnchor = exit };
+        }
+
+        /// <summary>Concatenates two renderer arrays - a structure often owns geometry on both sides.</summary>
+        private static Renderer[] Combine(Renderer[] a, Renderer[] b)
+        {
+            var all = new List<Renderer>(a);
+            all.AddRange(b);
+            return all.ToArray();
         }
 
         // ------------------------------------------------------------------
@@ -221,7 +476,8 @@ namespace Cardio.EditorTools
         /// (centreAngleDegrees, widthDegrees) pairs where no block is placed -
         /// these become the valve openings.
         /// </param>
-        private static void BuildRingWall(Transform parent, float radius, int segments, float height, Vector2[] gaps)
+        private static void BuildRingWall(Transform parent, float radius, int segments, float height, Vector2[] gaps,
+                                          float thickness = 2.2f)
         {
             var ring = new GameObject("ChamberWall_Myocardium");
             ring.transform.SetParent(parent, false);
@@ -238,7 +494,7 @@ namespace Cardio.EditorTools
                 var position = new Vector3(Mathf.Sin(rad) * radius, height * 0.5f, Mathf.Cos(rad) * radius);
 
                 GameObject block = CreateBlock(ring.transform, $"Wall_{i:00}", position,
-                                               new Vector3(blockWidth, height, 2.2f),
+                                               new Vector3(blockWidth, height, thickness),
                                                i % 2 == 0 ? ProjectAssets.MuscleWall : ProjectAssets.MuscleWallDark);
 
                 // Face the chamber centre so the wall reads as curved.
@@ -259,36 +515,54 @@ namespace Cardio.EditorTools
         }
 
         /// <summary>An open-topped tunnel: floor plus two side walls.</summary>
-        private static GameObject BuildCorridor(Transform parent, string name, Vector3 centre, Vector3 size)
+        private static GameObject BuildCorridor(Transform parent, string name, Vector3 centre, Vector3 size,
+                                                Material wallMaterial = null)
         {
             var corridor = new GameObject(name);
             corridor.transform.SetParent(parent, false);
             corridor.transform.localPosition = centre;
 
             CreateBlock(corridor.transform, "Floor", new Vector3(0f, -0.5f, 0f), new Vector3(size.x, 1f, size.z), ProjectAssets.Endocardium);
-            CreateBlock(corridor.transform, "Wall_L", new Vector3(-size.x * 0.5f, size.y * 0.5f, 0f), new Vector3(1.2f, size.y, size.z), ProjectAssets.MuscleWall);
-            CreateBlock(corridor.transform, "Wall_R", new Vector3(size.x * 0.5f, size.y * 0.5f, 0f), new Vector3(1.2f, size.y, size.z), ProjectAssets.MuscleWall);
+            CreateBlock(corridor.transform, "Wall_L", new Vector3(-size.x * 0.5f, size.y * 0.5f, 0f), new Vector3(1.2f, size.y, size.z), wallMaterial ?? ProjectAssets.MuscleWall);
+            CreateBlock(corridor.transform, "Wall_R", new Vector3(size.x * 0.5f, size.y * 0.5f, 0f), new Vector3(1.2f, size.y, size.z), wallMaterial ?? ProjectAssets.MuscleWall);
 
             return corridor;
         }
 
         /// <summary>Two valve leaflets framing an opening. Returns their renderers so a hint can highlight them.</summary>
-        private static Renderer[] BuildValveFlaps(Transform parent, string name, Vector3 centre, float openingWidth)
+        private static Renderer[] BuildValveFlaps(Transform parent, string name, Vector3 centre, float openingWidth,
+                                                  int leaflets = 2)
         {
             var valve = new GameObject(name);
             valve.transform.SetParent(parent, false);
             valve.transform.localPosition = centre;
 
+            var renderers = new List<Renderer>();
+
             GameObject left = CreateBlock(valve.transform, "Leaflet_L", new Vector3(-openingWidth * 0.5f - 0.6f, 2.5f, 0f), new Vector3(1.6f, 5f, 1.2f), ProjectAssets.ValveTissue);
             GameObject right = CreateBlock(valve.transform, "Leaflet_R", new Vector3(openingWidth * 0.5f + 0.6f, 2.5f, 0f), new Vector3(1.6f, 5f, 1.2f), ProjectAssets.ValveTissue);
             GameObject lintel = CreateBlock(valve.transform, "Annulus", new Vector3(0f, 5.6f, 0f), new Vector3(openingWidth + 3.8f, 1.2f, 1.2f), ProjectAssets.ValveTissue);
 
-            return new[]
+            renderers.Add(left.GetComponent<Renderer>());
+            renderers.Add(right.GetComponent<Renderer>());
+            renderers.Add(lintel.GetComponent<Renderer>());
+
+            // A third cusp, for the tricuspid and the semilunar valves. It hangs
+            // from the annulus rather than standing on the floor, so the doorway
+            // stays walkable from y=0 to y=3.8.
+            //
+            // That height is not cosmetic. The A* sampler rejects a cell whose
+            // clearance sphere at body height is blocked, so a centre cusp at
+            // walking height would seal the chamber off from the corridor - the
+            // exact failure the Level 1 valve annulus caused in Phase 5.
+            if (leaflets >= 3)
             {
-                left.GetComponent<Renderer>(),
-                right.GetComponent<Renderer>(),
-                lintel.GetComponent<Renderer>()
-            };
+                GameObject centreCusp = CreateBlock(valve.transform, "Leaflet_C", new Vector3(0f, 4.4f, 0f),
+                                                    new Vector3(openingWidth * 0.55f, 1.2f, 1.2f), ProjectAssets.ValveTissue);
+                renderers.Add(centreCusp.GetComponent<Renderer>());
+            }
+
+            return renderers.ToArray();
         }
 
         /// <summary>Static fatty tissue: a visual mound plus a damaging trigger volume.</summary>

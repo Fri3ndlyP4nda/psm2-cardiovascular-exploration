@@ -64,6 +64,11 @@ namespace Cardio.EditorTools
             CheckBlockedRegion(manager);
             CheckDegenerateQueries(manager);
 
+            // Phase 8: the levels built in this phase, which nothing else covers.
+            CheckCollateralRoute();
+            CheckLevelNavigable(GameConstants.SceneLevel2, "Level 2");
+            CheckLevelNavigable(GameConstants.SceneLevel3, "Level 3");
+
             string summary = $"[PSM2 AStarCheck] {_passed} passed, {_failed} failed.";
             if (_failed == 0) Debug.Log(summary);
             else Debug.LogError(summary);
@@ -262,6 +267,111 @@ namespace Cardio.EditorTools
 
             Debug.Log(sb.ToString());
         }
+
+        // ------------------------------------------------------------------
+        // Levels 2 and 3 navigability (Phase 8)
+        // ------------------------------------------------------------------
+
+        /// <summary>
+        /// Asserts that a generated level can actually be completed.
+        ///
+        /// This is the check Phase 8 most needed. Every other automated test in
+        /// the project loads Level 1, so new geometry could ship with a sealed
+        /// corridor or a station stranded inside a wall and nothing would fail.
+        /// Reachability from the spawn point to every station and to the exit is
+        /// the property that makes a level winnable, and it is fully decidable
+        /// from the grid - no Play mode and no human needed.
+        /// </summary>
+        private static void CheckLevelNavigable(string sceneName, string label)
+        {
+            string scenePath = $"{ProjectAssets.ScenesFolder}/{sceneName}.unity";
+            if (AssetDatabase.LoadAssetAtPath<SceneAsset>(scenePath) == null)
+            {
+                _failed++;
+                Debug.LogError($"[PSM2 AStarCheck] FAIL {label}: {scenePath} not found.");
+                return;
+            }
+
+            EditorSceneManager.OpenScene(scenePath, OpenSceneMode.Single);
+
+            var manager = Object.FindAnyObjectByType<AStarPathfindingManager>();
+            if (manager == null)
+            {
+                _failed++;
+                Debug.LogError($"[PSM2 AStarCheck] FAIL {label}: no AStarPathfindingManager in the scene.");
+                return;
+            }
+
+            Physics.SyncTransforms();
+            manager.BuildGrid();
+
+            True($"{label} grid has walkable space", manager.WalkableNodeCount > 0);
+
+            Vector3 spawn = FindPosition("SpawnPoint", Vector3.zero);
+            Vector3 exit = FindPosition("ExitAnchor", Vector3.zero);
+
+            var path = new List<Vector3>();
+            True($"{label} exit is reachable from the spawn", manager.FindPath(spawn, exit, path));
+
+            // Every station must be reachable, or its objective can never be
+            // ticked and the level cannot be finished.
+            foreach (Gameplay.PuzzleStation station in
+                     Object.FindObjectsByType<Gameplay.PuzzleStation>(FindObjectsInactive.Include))
+            {
+                var toStation = new List<Vector3>();
+                True($"{label} station '{station.PuzzleId}' is reachable",
+                     manager.FindPath(spawn, station.transform.position, toStation));
+            }
+        }
+
+        /// <summary>
+        /// Level 2's thrombus is meant to seal the basilar artery outright, so
+        /// that the only way through is the collateral route around a carotid
+        /// and across the Circle of Willis.
+        ///
+        /// Both halves matter and both are asserted: if the clot does not
+        /// actually block, the level teaches nothing about collateral flow; if
+        /// it blocks with no way around, the level is unwinnable. A route that
+        /// exists but is far longer than the straight line is exactly the
+        /// signature of a detour.
+        /// </summary>
+        private static void CheckCollateralRoute()
+        {
+            string scenePath = $"{ProjectAssets.ScenesFolder}/{GameConstants.SceneLevel2}.unity";
+            EditorSceneManager.OpenScene(scenePath, OpenSceneMode.Single);
+
+            var manager = Object.FindAnyObjectByType<AStarPathfindingManager>();
+            if (manager == null) return;
+
+            Physics.SyncTransforms();
+            manager.BuildGrid();
+
+            // Just south of the clot (reachable directly) and just north of it
+            // (only reachable the long way round).
+            var southOfClot = new Vector3(0f, 1f, -22f);
+            var northOfClot = new Vector3(0f, 1f, -13f);
+
+            var path = new List<Vector3>();
+            bool found = manager.FindPath(southOfClot, northOfClot, path);
+
+            True("Level 2 the far side of the thrombus is still reachable", found);
+
+            if (found)
+            {
+                float direct = Vector3.Distance(southOfClot, northOfClot);
+                float travelled = PathLength(southOfClot, path);
+
+                // A straight run would be ~9 units. Going round a carotid and
+                // through the ring is many times that, so a modest multiple is
+                // a safe threshold that still fails loudly if the clot leaks.
+                True("Level 2 the thrombus forces a detour rather than a straight line",
+                     travelled > direct * 3f);
+
+                Debug.Log($"[PSM2 AStarCheck] Level 2 collateral route: {travelled:F1} units " +
+                          $"against a {direct:F1} unit straight line ({travelled / direct:F1}x).");
+            }
+        }
+
 
         // ------------------------------------------------------------------
         // Helpers

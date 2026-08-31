@@ -1,6 +1,6 @@
 %YAML 1.1
 %TAG !u! tag:unity3d.com,2011:
---- !u!114 &-8934859208921996920
+--- !u!114 &-9163640670081477592
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -10,69 +10,46 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 5774bd79aa42c7f42b20b5b97d4c619d, type: 3}
-  m_Name: lv1_drag_aorta
-  m_EditorClassIdentifier: Assembly-CSharp::Cardio.Data.PuzzleData
-  PuzzleId: lv1_drag_aorta
-  Type: 1
+  m_Name: lv1_valve_backflow
+  m_EditorClassIdentifier: Cardio.Runtime::Cardio.Data.PuzzleData
+  PuzzleId: lv1_valve_backflow
+  Type: 3
   Complexity: 2
-  Prompt: Drag the label onto the vessel it names.
-  TargetStructureId: aorta
-  LabelText: Aorta
-  Options: []
-  CorrectOptionIndex: 0
-  SequenceSteps: []
-  Explanation: Correct. The ascending aorta is the body's largest artery, carrying
-    oxygenated blood away from the left ventricle.
-  Hint: Follow the outflow passage past the aortic valve.
---- !u!114 &-4193012231715966327
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 0}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 5774bd79aa42c7f42b20b5b97d4c619d, type: 3}
-  m_Name: lv1_drag_mitral
-  m_EditorClassIdentifier: Assembly-CSharp::Cardio.Data.PuzzleData
-  PuzzleId: lv1_drag_mitral
-  Type: 1
-  Complexity: 2
-  Prompt: Drag the label onto the structure it names.
+  Prompt: Click the valve that prevents blood flowing back into the left atrium while
+    the ventricle contracts.
   TargetStructureId: mitral_valve
-  LabelText: Mitral Valve
-  Options: []
-  CorrectOptionIndex: 0
-  SequenceSteps: []
-  Explanation: Correct. The mitral valve guards the inflow from the left atrium.
-  Hint: It is the pale two-leaflet structure at the inflow end.
---- !u!114 &-3163150373657711336
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 0}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 5774bd79aa42c7f42b20b5b97d4c619d, type: 3}
-  m_Name: lv1_id_septum
-  m_EditorClassIdentifier: Assembly-CSharp::Cardio.Data.PuzzleData
-  PuzzleId: lv1_id_septum
-  Type: 0
-  Complexity: 2
-  Prompt: Click the wall separating this chamber from the right ventricle.
-  TargetStructureId: interventricular_septum
   LabelText: 
   Options: []
   CorrectOptionIndex: 0
   SequenceSteps: []
-  Explanation: The interventricular septum is a thick muscular wall. A hole in it
-    is called a ventricular septal defect, which allows oxygenated and deoxygenated
-    blood to mix.
-  Hint: It is the flat, darker wall along one side of the chamber.
---- !u!114 &-2372398974551784236
+  Explanation: The mitral valve. During systole the rising ventricular pressure forces
+    its two cusps together, sealing the atrium off.
+  Hint: Backflow into the atrium is stopped at the inflow end.
+--- !u!114 &-7848167371467590957
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5774bd79aa42c7f42b20b5b97d4c619d, type: 3}
+  m_Name: lv1_drag_left_ventricle
+  m_EditorClassIdentifier: Cardio.Runtime::Cardio.Data.PuzzleData
+  PuzzleId: lv1_drag_left_ventricle
+  Type: 1
+  Complexity: 1
+  Prompt: Drag the label onto the chamber it names.
+  TargetStructureId: left_ventricle
+  LabelText: Left Ventricle
+  Options: []
+  CorrectOptionIndex: 0
+  SequenceSteps: []
+  Explanation: Correct. The left ventricle is the systemic pump - the chamber that
+    supplies the whole body except the lungs.
+  Hint: Drop it on the chamber floor around you.
+--- !u!114 &-6075247342398464273
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -83,7 +60,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 5774bd79aa42c7f42b20b5b97d4c619d, type: 3}
   m_Name: lv1_mc_blood_type
-  m_EditorClassIdentifier: Assembly-CSharp::Cardio.Data.PuzzleData
+  m_EditorClassIdentifier: Cardio.Runtime::Cardio.Data.PuzzleData
   PuzzleId: lv1_mc_blood_type
   Type: 4
   Complexity: 1
@@ -100,7 +77,55 @@ MonoBehaviour:
   Explanation: Oxygenated. Blood arrives from the lungs via the pulmonary veins into
     the left atrium, then passes to the left ventricle and out to the body.
   Hint: Consider where the blood arriving in the left atrium has just come from.
---- !u!114 &-1818853047218255925
+--- !u!114 &-4872095559907088765
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5774bd79aa42c7f42b20b5b97d4c619d, type: 3}
+  m_Name: lv1_id_aortic_valve
+  m_EditorClassIdentifier: Cardio.Runtime::Cardio.Data.PuzzleData
+  PuzzleId: lv1_id_aortic_valve
+  Type: 0
+  Complexity: 1
+  Prompt: Click the valve that opens when the left ventricle contracts.
+  TargetStructureId: aortic_valve
+  LabelText: 
+  Options: []
+  CorrectOptionIndex: 0
+  SequenceSteps: []
+  Explanation: The aortic valve has three semilunar cusps. It opens during systole
+    to release blood into the aorta, then snaps shut during diastole so blood cannot
+    fall back into the ventricle.
+  Hint: It is at the outflow end, opposite the mitral valve.
+--- !u!114 &-4844999188983627708
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5774bd79aa42c7f42b20b5b97d4c619d, type: 3}
+  m_Name: lv1_drag_mitral
+  m_EditorClassIdentifier: Cardio.Runtime::Cardio.Data.PuzzleData
+  PuzzleId: lv1_drag_mitral
+  Type: 1
+  Complexity: 2
+  Prompt: Drag the label onto the structure it names.
+  TargetStructureId: mitral_valve
+  LabelText: Mitral Valve
+  Options: []
+  CorrectOptionIndex: 0
+  SequenceSteps: []
+  Explanation: Correct. The mitral valve guards the inflow from the left atrium.
+  Hint: It is the pale two-leaflet structure at the inflow end.
+--- !u!114 &-3812152009303774865
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -111,7 +136,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 5774bd79aa42c7f42b20b5b97d4c619d, type: 3}
   m_Name: lv1_flow_left_heart
-  m_EditorClassIdentifier: Assembly-CSharp::Cardio.Data.PuzzleData
+  m_EditorClassIdentifier: Cardio.Runtime::Cardio.Data.PuzzleData
   PuzzleId: lv1_flow_left_heart
   Type: 2
   Complexity: 2
@@ -131,136 +156,7 @@ MonoBehaviour:
     mitral valve into the left ventricle, and is forced through the aortic valve
     into the aorta.
   Hint: Start in the chamber that receives blood from the pulmonary veins.
---- !u!114 &-1764491915663849490
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 0}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 5774bd79aa42c7f42b20b5b97d4c619d, type: 3}
-  m_Name: lv1_id_papillary
-  m_EditorClassIdentifier: Assembly-CSharp::Cardio.Data.PuzzleData
-  PuzzleId: lv1_id_papillary
-  Type: 0
-  Complexity: 2
-  Prompt: Click the muscular pillars that anchor the mitral valve.
-  TargetStructureId: papillary_muscle
-  LabelText: 
-  Options: []
-  CorrectOptionIndex: 0
-  SequenceSteps: []
-  Explanation: Papillary muscles contract along with the ventricle and pull on the
-    chordae tendineae. That tension holds the mitral cusps shut so they cannot invert
-    back into the atrium.
-  Hint: Two thick columns rising from the chamber floor.
---- !u!114 &-1593679546814734162
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 0}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 5774bd79aa42c7f42b20b5b97d4c619d, type: 3}
-  m_Name: lv1_valve_semilunar
-  m_EditorClassIdentifier: Assembly-CSharp::Cardio.Data.PuzzleData
-  PuzzleId: lv1_valve_semilunar
-  Type: 3
-  Complexity: 3
-  Prompt: Click the semilunar valve of the left heart - the one with three half-moon
-    cusps.
-  TargetStructureId: aortic_valve
-  LabelText: 
-  Options: []
-  CorrectOptionIndex: 0
-  SequenceSteps: []
-  Explanation: The aortic valve. 'Semilunar' describes the half-moon shape of each
-    of its three cusps. The pulmonary valve on the right side is the other semilunar
-    valve.
-  Hint: Semilunar valves sit at the exit from a ventricle, not the entrance.
---- !u!114 &-1047704312688464483
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 0}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 5774bd79aa42c7f42b20b5b97d4c619d, type: 3}
-  m_Name: lv1_id_left_ventricle
-  m_EditorClassIdentifier: Assembly-CSharp::Cardio.Data.PuzzleData
-  PuzzleId: lv1_id_left_ventricle
-  Type: 0
-  Complexity: 1
-  Prompt: Click the chamber that pumps oxygenated blood into the aorta.
-  TargetStructureId: left_ventricle
-  LabelText: 
-  Options: []
-  CorrectOptionIndex: 0
-  SequenceSteps: []
-  Explanation: The left ventricle has the thickest myocardium of the four chambers,
-    because it must generate enough pressure to drive blood through the entire systemic
-    circulation.
-  Hint: It is the large chamber you are standing in.
---- !u!114 &11400000
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 0}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 74d8da11601f4e543a81f3121335324b, type: 3}
-  m_Name: QuestionBank_Level1_LeftVentricle
-  m_EditorClassIdentifier: Assembly-CSharp::Cardio.Data.QuestionBank
-  Level: 1
-  Puzzles:
-  - {fileID: -1047704312688464483}
-  - {fileID: 2627764434278068082}
-  - {fileID: 1598513586349098121}
-  - {fileID: -1764491915663849490}
-  - {fileID: -3163150373657711336}
-  - {fileID: 6725015403065912892}
-  - {fileID: -4193012231715966327}
-  - {fileID: -8934859208921996920}
-  - {fileID: 3477407497803369572}
-  - {fileID: -1593679546814734162}
-  - {fileID: -1818853047218255925}
-  - {fileID: 5902769617421881845}
-  - {fileID: -2372398974551784236}
-  - {fileID: 7752231739676218035}
---- !u!114 &1598513586349098121
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 0}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 5774bd79aa42c7f42b20b5b97d4c619d, type: 3}
-  m_Name: lv1_id_aortic_valve
-  m_EditorClassIdentifier: Assembly-CSharp::Cardio.Data.PuzzleData
-  PuzzleId: lv1_id_aortic_valve
-  Type: 0
-  Complexity: 1
-  Prompt: Click the valve that opens when the left ventricle contracts.
-  TargetStructureId: aortic_valve
-  LabelText: 
-  Options: []
-  CorrectOptionIndex: 0
-  SequenceSteps: []
-  Explanation: The aortic valve has three semilunar cusps. It opens during systole
-    to release blood into the aorta, then snaps shut during diastole so blood cannot
-    fall back into the ventricle.
-  Hint: It is at the outflow end, opposite the mitral valve.
---- !u!114 &2627764434278068082
+--- !u!114 &-3103892144029156500
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -271,7 +167,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 5774bd79aa42c7f42b20b5b97d4c619d, type: 3}
   m_Name: lv1_id_mitral_valve
-  m_EditorClassIdentifier: Assembly-CSharp::Cardio.Data.PuzzleData
+  m_EditorClassIdentifier: Cardio.Runtime::Cardio.Data.PuzzleData
   PuzzleId: lv1_id_mitral_valve
   Type: 0
   Complexity: 1
@@ -286,7 +182,7 @@ MonoBehaviour:
     sits between the left atrium and the left ventricle. It closes during contraction
     so blood cannot flow back into the atrium.
   Hint: Look back towards the inflow end of the chamber.
---- !u!114 &3477407497803369572
+--- !u!114 &-1634732784905158946
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -296,22 +192,74 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 5774bd79aa42c7f42b20b5b97d4c619d, type: 3}
-  m_Name: lv1_valve_backflow
-  m_EditorClassIdentifier: Assembly-CSharp::Cardio.Data.PuzzleData
-  PuzzleId: lv1_valve_backflow
-  Type: 3
+  m_Name: lv1_id_septum
+  m_EditorClassIdentifier: Cardio.Runtime::Cardio.Data.PuzzleData
+  PuzzleId: lv1_id_septum
+  Type: 0
   Complexity: 2
-  Prompt: Click the valve that prevents blood flowing back into the left atrium while
-    the ventricle contracts.
-  TargetStructureId: mitral_valve
+  Prompt: Click the wall separating this chamber from the right ventricle.
+  TargetStructureId: interventricular_septum
   LabelText: 
   Options: []
   CorrectOptionIndex: 0
   SequenceSteps: []
-  Explanation: The mitral valve. During systole the rising ventricular pressure forces
-    its two cusps together, sealing the atrium off.
-  Hint: Backflow into the atrium is stopped at the inflow end.
---- !u!114 &5902769617421881845
+  Explanation: The interventricular septum is a thick muscular wall. A hole in it
+    is called a ventricular septal defect, which allows oxygenated and deoxygenated
+    blood to mix.
+  Hint: It is the flat, darker wall along one side of the chamber.
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 74d8da11601f4e543a81f3121335324b, type: 3}
+  m_Name: QuestionBank_Level1_LeftVentricle
+  m_EditorClassIdentifier: Cardio.Runtime::Cardio.Data.QuestionBank
+  Level: 1
+  Puzzles:
+  - {fileID: 3827327490442087385}
+  - {fileID: -3103892144029156500}
+  - {fileID: -4872095559907088765}
+  - {fileID: 7065506965693700409}
+  - {fileID: -1634732784905158946}
+  - {fileID: -7848167371467590957}
+  - {fileID: -4844999188983627708}
+  - {fileID: 1025446588755708660}
+  - {fileID: -9163640670081477592}
+  - {fileID: 2867097901323812842}
+  - {fileID: -3812152009303774865}
+  - {fileID: 1493254047726769899}
+  - {fileID: -6075247342398464273}
+  - {fileID: 6169531306729533709}
+--- !u!114 &1025446588755708660
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5774bd79aa42c7f42b20b5b97d4c619d, type: 3}
+  m_Name: lv1_drag_aorta
+  m_EditorClassIdentifier: Cardio.Runtime::Cardio.Data.PuzzleData
+  PuzzleId: lv1_drag_aorta
+  Type: 1
+  Complexity: 2
+  Prompt: Drag the label onto the vessel it names.
+  TargetStructureId: aorta
+  LabelText: Aorta
+  Options: []
+  CorrectOptionIndex: 0
+  SequenceSteps: []
+  Explanation: Correct. The ascending aorta is the body's largest artery, carrying
+    oxygenated blood away from the left ventricle.
+  Hint: Follow the outflow passage past the aortic valve.
+--- !u!114 &1493254047726769899
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -322,7 +270,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 5774bd79aa42c7f42b20b5b97d4c619d, type: 3}
   m_Name: lv1_mc_thickest_wall
-  m_EditorClassIdentifier: Assembly-CSharp::Cardio.Data.PuzzleData
+  m_EditorClassIdentifier: Cardio.Runtime::Cardio.Data.PuzzleData
   PuzzleId: lv1_mc_thickest_wall
   Type: 4
   Complexity: 1
@@ -339,7 +287,7 @@ MonoBehaviour:
   Explanation: The left ventricle. It pumps against the high resistance of the whole
     systemic circulation, so it needs far more muscle than the other chambers.
   Hint: Think about which chamber has to push blood the furthest.
---- !u!114 &6725015403065912892
+--- !u!114 &2867097901323812842
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -349,21 +297,48 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 5774bd79aa42c7f42b20b5b97d4c619d, type: 3}
-  m_Name: lv1_drag_left_ventricle
-  m_EditorClassIdentifier: Assembly-CSharp::Cardio.Data.PuzzleData
-  PuzzleId: lv1_drag_left_ventricle
-  Type: 1
-  Complexity: 1
-  Prompt: Drag the label onto the chamber it names.
-  TargetStructureId: left_ventricle
-  LabelText: Left Ventricle
+  m_Name: lv1_valve_semilunar
+  m_EditorClassIdentifier: Cardio.Runtime::Cardio.Data.PuzzleData
+  PuzzleId: lv1_valve_semilunar
+  Type: 3
+  Complexity: 3
+  Prompt: Click the semilunar valve of the left heart - the one with three half-moon
+    cusps.
+  TargetStructureId: aortic_valve
+  LabelText: 
   Options: []
   CorrectOptionIndex: 0
   SequenceSteps: []
-  Explanation: Correct. The left ventricle is the systemic pump - the chamber that
-    supplies the whole body except the lungs.
-  Hint: Drop it on the chamber floor around you.
---- !u!114 &7752231739676218035
+  Explanation: The aortic valve. 'Semilunar' describes the half-moon shape of each
+    of its three cusps. The pulmonary valve on the right side is the other semilunar
+    valve.
+  Hint: Semilunar valves sit at the exit from a ventricle, not the entrance.
+--- !u!114 &3827327490442087385
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5774bd79aa42c7f42b20b5b97d4c619d, type: 3}
+  m_Name: lv1_id_left_ventricle
+  m_EditorClassIdentifier: Cardio.Runtime::Cardio.Data.PuzzleData
+  PuzzleId: lv1_id_left_ventricle
+  Type: 0
+  Complexity: 1
+  Prompt: Click the chamber that pumps oxygenated blood into the aorta.
+  TargetStructureId: left_ventricle
+  LabelText: 
+  Options: []
+  CorrectOptionIndex: 0
+  SequenceSteps: []
+  Explanation: The left ventricle has the thickest myocardium of the four chambers,
+    because it must generate enough pressure to drive blood through the entire systemic
+    circulation.
+  Hint: It is the large chamber you are standing in.
+--- !u!114 &6169531306729533709
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -374,7 +349,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 5774bd79aa42c7f42b20b5b97d4c619d, type: 3}
   m_Name: lv1_mc_chordae
-  m_EditorClassIdentifier: Assembly-CSharp::Cardio.Data.PuzzleData
+  m_EditorClassIdentifier: Cardio.Runtime::Cardio.Data.PuzzleData
   PuzzleId: lv1_mc_chordae
   Type: 4
   Complexity: 3
@@ -391,3 +366,28 @@ MonoBehaviour:
   Explanation: Chordae tendineae - fine tendinous cords, sometimes called heart strings.
     They stop the valve cusps from being pushed inside out by ventricular pressure.
   Hint: The name translates roughly as 'tendinous cords'.
+--- !u!114 &7065506965693700409
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5774bd79aa42c7f42b20b5b97d4c619d, type: 3}
+  m_Name: lv1_id_papillary
+  m_EditorClassIdentifier: Cardio.Runtime::Cardio.Data.PuzzleData
+  PuzzleId: lv1_id_papillary
+  Type: 0
+  Complexity: 2
+  Prompt: Click the muscular pillars that anchor the mitral valve.
+  TargetStructureId: papillary_muscle
+  LabelText: 
+  Options: []
+  CorrectOptionIndex: 0
+  SequenceSteps: []
+  Explanation: Papillary muscles contract along with the ventricle and pull on the
+    chordae tendineae. That tension holds the mitral cusps shut so they cannot invert
+    back into the atrium.
+  Hint: Two thick columns rising from the chamber floor.

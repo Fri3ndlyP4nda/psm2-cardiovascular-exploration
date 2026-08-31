@@ -90,14 +90,8 @@ namespace Cardio.EditorTools
             CreateLoginScene();
 
             CreateLevel1Scene(playerPrefab);
-            CreatePlaceholderLevelScene(playerPrefab, LevelId.Level2_Brain, GameConstants.SceneLevel2,
-                "LEVEL 2 - BRAIN CIRCULATION",
-                "Branching vessels, narrow paths and moving obstacles.\nFull level is scheduled for Phase 8.",
-                ProjectAssets.Deoxygenated);
-            CreatePlaceholderLevelScene(playerPrefab, LevelId.Level3_RightVentricle, GameConstants.SceneLevel3,
-                "LEVEL 3 - RIGHT VENTRICLE",
-                "Denser obstacles and the hardest puzzles.\nFull level is scheduled for Phase 8.",
-                ProjectAssets.MuscleWallDark);
+            CreateLevel2Scene(playerPrefab);
+            CreateLevel3Scene(playerPrefab);
 
             RegisterScenesInBuildSettings();
         }
@@ -370,47 +364,129 @@ namespace Cardio.EditorTools
                           gridSize: new Vector2(46f, 64f), obstacles: obstacles);
         }
 
-        private static void CreatePlaceholderLevelScene(GameObject playerPrefab, LevelId levelId, string sceneName,
-                                                        string headline, string body, Material wallMaterial)
+        /// <summary>
+        /// Level 2 - the cerebral circulation.
+        ///
+        /// Station placement follows the two routes rather than being scattered:
+        /// the questions about the posterior supply sit in the basilar, the
+        /// carotid questions sit in the carotids, and the two questions about
+        /// collateral flow sit inside the Circle of Willis itself - which the
+        /// player can only have reached by taking the collateral route, because
+        /// the thrombus seals the direct one.
+        /// </summary>
+        private static void CreateLevel2Scene(GameObject playerPrefab)
         {
             Scene scene = NewScene();
 
             EnvironmentFactory.SetupLighting(
-                ambient: new Color(0.28f, 0.24f, 0.32f),
-                fogColor: new Color(0.06f, 0.05f, 0.10f),
-                fogDensity: 0.012f);
+                ambient: new Color(0.24f, 0.26f, 0.34f),
+                fogColor: new Color(0.05f, 0.06f, 0.11f),
+                fogDensity: 0.013f);
 
-            LevelEnvironment env = EnvironmentFactory.BuildPlaceholderRoom(sceneName, headline, body, wallMaterial);
-
-            // The placeholder rooms have no tagged anatomy, so only the two
-            // panel-answered formats are usable here. The full station layout
-            // arrives with the real environments in Phase 8.
-            string flowId = levelId == LevelId.Level2_Brain ? "lv2_flow_carotid" : "lv3_flow_right_heart";
-            string choiceId = levelId == LevelId.Level2_Brain ? "lv2_mc_circle_of_willis" : "lv3_mc_tricuspid";
+            LevelEnvironment env = EnvironmentFactory.BuildCerebralVessels();
 
             var stations = new[]
             {
-                new StationSpec(flowId, "Trace the blood flow", new Vector3(-5f, 0f, 2f)),
-                new StationSpec(choiceId, "Answer the question", new Vector3(6f, 0f, -3f))
+                new StationSpec("lv2_id_basilar_artery",     "Examine the vessel",        new Vector3(0f, 0f, -26f)),
+                new StationSpec("lv2_flow_carotid",          "Trace the blood flow",      new Vector3(-16f, 0f, -33f)),
+                new StationSpec("lv2_drag_internal_carotid", "Label the vessel",          new Vector3(-26f, 0f, -12f)),
+                new StationSpec("lv2_mc_ischaemic_stroke",   "Review the blockage",       new Vector3(26f, 0f, -12f)),
+                new StationSpec("lv2_id_circle_of_willis",   "Examine the ring",          new Vector3(0f, 0f, -5f)),
+                new StationSpec("lv2_mc_collateral",         "Answer the question",       new Vector3(5f, 0f, 3f)),
+                new StationSpec("lv2_flow_vertebral",        "Trace the posterior route", new Vector3(-26f, 0f, 0f))
             };
 
             var objectives = new[]
             {
-                ObjectiveSpec.Puzzle("Order the blood flow", flowId),
-                ObjectiveSpec.Puzzle("Answer the anatomy question", choiceId),
-                ObjectiveSpec.Exit("Reach the level exit")
+                ObjectiveSpec.Puzzle("Identify the basilar artery", "lv2_id_basilar_artery"),
+                ObjectiveSpec.Puzzle("Order the carotid blood flow", "lv2_flow_carotid"),
+                ObjectiveSpec.Puzzle("Label the internal carotid", "lv2_drag_internal_carotid"),
+                ObjectiveSpec.Puzzle("Explain the blockage", "lv2_mc_ischaemic_stroke"),
+                ObjectiveSpec.Puzzle("Identify the Circle of Willis", "lv2_id_circle_of_willis"),
+                ObjectiveSpec.Puzzle("Explain collateral circulation", "lv2_mc_collateral"),
+                ObjectiveSpec.Puzzle("Order the vertebral route", "lv2_flow_vertebral"),
+                ObjectiveSpec.Exit("Reach the cerebral arteries")
             };
 
+            // Moving obstacles along both open routes, so neither carotid is a
+            // free walk. The monocyte patrols the ring, which is the one place
+            // every route converges.
             var obstacles = new[]
             {
-                ObstacleSpec.Neutrophil(new Vector3(10f, 1f, 8f)),
-                ObstacleSpec.Monocyte(new Vector3(-10f, 1f, -6f),
-                                      new Vector3(-10f, 1f, -6f), new Vector3(-10f, 1f, 10f))
+                ObstacleSpec.Neutrophil(new Vector3(-26f, 1f, -20f)),
+                ObstacleSpec.Neutrophil(new Vector3(26f, 1f, -20f)),
+                ObstacleSpec.Neutrophil(new Vector3(0f, 1f, 14f)),
+                ObstacleSpec.Monocyte(new Vector3(-6f, 1f, 0f),
+                                      new Vector3(-6f, 1f, 0f), new Vector3(6f, 1f, 0f))
             };
 
-            AssembleLevel(scene, playerPrefab, env, levelId, sceneName, objectives, stations,
-                          gridSize: new Vector2(44f, 44f), obstacles: obstacles);
+            AssembleLevel(scene, playerPrefab, env, LevelId.Level2_Brain, GameConstants.SceneLevel2,
+                          objectives, stations,
+                          gridSize: new Vector2(72f, 84f), obstacles: obstacles);
         }
+
+        /// <summary>
+        /// Level 3 - the right ventricle and the start of the pulmonary circuit.
+        ///
+        /// Carries the highest obstacle density of the three levels (six agents
+        /// against Level 1's three) and the hardest question set, which is what
+        /// the roadmap asks of the final level.
+        /// </summary>
+        private static void CreateLevel3Scene(GameObject playerPrefab)
+        {
+            Scene scene = NewScene();
+
+            EnvironmentFactory.SetupLighting(
+                ambient: new Color(0.22f, 0.25f, 0.33f),
+                fogColor: new Color(0.05f, 0.07f, 0.12f),
+                fogDensity: 0.014f);
+
+            LevelEnvironment env = EnvironmentFactory.BuildRightVentricle();
+
+            var stations = new[]
+            {
+                new StationSpec("lv3_mc_tricuspid",           "Examine the inflow valve",  new Vector3(0f, 0f, -17f)),
+                new StationSpec("lv3_valve_backflow_atrium",  "Examine the valve",         new Vector3(-4f, 0f, -9f)),
+                new StationSpec("lv3_id_right_ventricle",     "Examine the chamber",       new Vector3(0f, 0f, 2f)),
+                new StationSpec("lv3_flow_right_heart",       "Trace the blood flow",      new Vector3(-8f, 0f, 3f)),
+                new StationSpec("lv3_mc_wall_thickness",      "Review the chamber wall",   new Vector3(8f, 0f, -4f)),
+                new StationSpec("lv3_mc_pressure",            "Answer the question",       new Vector3(-6f, 0f, -6f)),
+                new StationSpec("lv3_drag_pulmonary_artery",  "Label the outflow vessel",  new Vector3(3f, 0f, 9f)),
+                new StationSpec("lv3_mc_pulmonary_artery",    "Review the vessel",         new Vector3(0f, 0f, 22f))
+            };
+
+            var objectives = new[]
+            {
+                ObjectiveSpec.Puzzle("Identify the tricuspid valve", "lv3_mc_tricuspid"),
+                ObjectiveSpec.Puzzle("Find the valve that stops backflow", "lv3_valve_backflow_atrium"),
+                ObjectiveSpec.Puzzle("Identify the right ventricle", "lv3_id_right_ventricle"),
+                ObjectiveSpec.Puzzle("Order the right-heart blood flow", "lv3_flow_right_heart"),
+                ObjectiveSpec.Puzzle("Explain the wall thickness", "lv3_mc_wall_thickness"),
+                ObjectiveSpec.Puzzle("Compare the circuit pressures", "lv3_mc_pressure"),
+                ObjectiveSpec.Puzzle("Label the pulmonary artery", "lv3_drag_pulmonary_artery"),
+                ObjectiveSpec.Puzzle("Explain why the artery is unusual", "lv3_mc_pulmonary_artery"),
+                ObjectiveSpec.Exit("Leave through the pulmonary valve")
+            };
+
+            // Highest density in the game: four hunters in the chamber plus two
+            // patrolling monocytes, one of them blocking the outflow corridor.
+            var obstacles = new[]
+            {
+                ObstacleSpec.Neutrophil(new Vector3(-7f, 1f, -4f)),
+                ObstacleSpec.Neutrophil(new Vector3(7f, 1f, 6f)),
+                ObstacleSpec.Neutrophil(new Vector3(-5f, 1f, 8f)),
+                ObstacleSpec.Neutrophil(new Vector3(5f, 1f, -7f)),
+                ObstacleSpec.Monocyte(new Vector3(0f, 1f, 18f),
+                                      new Vector3(-2f, 1f, 16f), new Vector3(2f, 1f, 24f)),
+                ObstacleSpec.Monocyte(new Vector3(-9f, 1f, 0f),
+                                      new Vector3(-9f, 1f, -6f), new Vector3(-9f, 1f, 6f))
+            };
+
+            AssembleLevel(scene, playerPrefab, env, LevelId.Level3_RightVentricle, GameConstants.SceneLevel3,
+                          objectives, stations,
+                          gridSize: new Vector2(40f, 60f), obstacles: obstacles);
+        }
+
 
         /// <summary>Adds the player, camera, UI, puzzle systems and stations to a level scene, then saves it.</summary>
         private static void AssembleLevel(Scene scene, GameObject playerPrefab, LevelEnvironment env,

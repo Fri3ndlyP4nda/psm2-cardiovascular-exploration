@@ -222,9 +222,9 @@ namespace Cardio.EditorTools
         }
 
         // ------------------------------------------------------------------
-        // LEVEL 2 - Brain circulation (12 puzzles)
-        // No AnatomyStructureTags exist in the placeholder scene yet, so this
-        // bank uses only formats that are answered inside the panel.
+        // LEVEL 2 - Brain circulation (15 puzzles)
+        // Phase 8 replaced the placeholder room with the real cerebral
+        // vessels, so world-picking formats are usable here now.
         // ------------------------------------------------------------------
 
         private static List<PuzzleData> BuildLevel2()
@@ -319,12 +319,35 @@ namespace Cardio.EditorTools
                         "It generates the heartbeat"
                     }, 0,
                     "Because it is a ring rather than a dead end, flow can arrive at a region from more than one direction. This collateral circulation can limit the damage from a single blocked vessel.",
-                    "Consider the advantage of a loop over a one-way pipe.")
+                    "Consider the advantage of a loop over a one-way pipe."),
+
+                // ---- World-picking puzzles (Phase 8, once the real vessels existed) ----
+                // Note there is no ValveIdentification puzzle in this bank: the
+                // cerebral arteries have no valves, so asking the player to click
+                // one would be teaching something false.
+                Structure("lv2_id_circle_of_willis", PuzzleType.IdentifyStructure, 1,
+                    "Click the ring of arteries that joins the front and back blood supplies of the brain.",
+                    "circle_of_willis",
+                    "The Circle of Willis. Because it is a closed ring rather than a dead end, blood can reach a region from more than one direction - which is what makes collateral flow possible.",
+                    "It is the open circular chamber at the centre of the level."),
+
+                Structure("lv2_id_basilar_artery", PuzzleType.IdentifyStructure, 2,
+                    "Click the vessel formed where the two vertebral arteries merge.",
+                    "basilar_artery",
+                    "The basilar artery. It runs up the front of the brainstem, supplies the brainstem and cerebellum, and feeds the posterior part of the Circle of Willis.",
+                    "It is the single wide vessel you started the level in."),
+
+                Structure("lv2_drag_internal_carotid", PuzzleType.DragAndDropLabel, 2,
+                    "Drag the label onto the paired vessels that carry the anterior blood supply into the skull.",
+                    "internal_carotid",
+                    "Correct. The internal carotid arteries are the anterior supply, and together they deliver most of the blood the brain receives.",
+                    "They are the two long vessels running down either side of the level.",
+                    "Internal Carotid")
             };
         }
 
         // ------------------------------------------------------------------
-        // LEVEL 3 - Right ventricle and pulmonary circulation (12 puzzles)
+        // LEVEL 3 - Right ventricle and pulmonary circulation (15 puzzles)
         // ------------------------------------------------------------------
 
         private static List<PuzzleData> BuildLevel3()
@@ -425,7 +448,27 @@ namespace Cardio.EditorTools
                         "Between the two atria directly"
                     }, 0,
                     "That is the definition. Systemic circulation is the other loop: left heart, out to the body, back to the right heart. The two run in series.",
-                    "It is the loop that involves the lungs.")
+                    "It is the loop that involves the lungs."),
+
+                // ---- World-picking puzzles (Phase 8, once the real chamber existed) ----
+                Structure("lv3_id_right_ventricle", PuzzleType.IdentifyStructure, 1,
+                    "Click the chamber that pumps deoxygenated blood towards the lungs.",
+                    "right_ventricle",
+                    "The right ventricle. Its wall is markedly thinner than the left ventricle's, because the pulmonary circuit it pumps into runs at roughly a fifth of systemic pressure.",
+                    "It is the chamber you are standing in."),
+
+                Structure("lv3_valve_backflow_atrium", PuzzleType.ValveIdentification, 2,
+                    "Click the valve that stops blood returning to the right atrium while this chamber contracts.",
+                    "tricuspid_valve",
+                    "The tricuspid valve. Its three cusps are forced together by rising ventricular pressure, and the papillary muscles hold them from inverting.",
+                    "Look back towards the inflow end, where you entered."),
+
+                Structure("lv3_drag_pulmonary_artery", PuzzleType.DragAndDropLabel, 2,
+                    "Drag the label onto the vessel that carries blood from this chamber to the lungs.",
+                    "pulmonary_artery",
+                    "Correct. The pulmonary artery is the only artery carrying deoxygenated blood - arteries are defined by flowing away from the heart, not by oxygen content.",
+                    "Follow the outflow past the pulmonary valve; it is rendered in blue.",
+                    "Pulmonary Artery")
             };
         }
     }

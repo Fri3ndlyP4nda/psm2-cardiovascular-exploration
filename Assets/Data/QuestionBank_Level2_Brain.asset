@@ -1,6 +1,6 @@
 %YAML 1.1
 %TAG !u! tag:unity3d.com,2011:
---- !u!114 &-6422455751470775392
+--- !u!114 &-7012736118328308994
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -10,54 +10,21 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 5774bd79aa42c7f42b20b5b97d4c619d, type: 3}
-  m_Name: lv2_mc_ischaemic_stroke
-  m_EditorClassIdentifier: Assembly-CSharp::Cardio.Data.PuzzleData
-  PuzzleId: lv2_mc_ischaemic_stroke
-  Type: 4
-  Complexity: 3
-  Prompt: 'An ischaemic stroke occurs when:'
-  TargetStructureId: 
+  m_Name: lv2_id_basilar_artery
+  m_EditorClassIdentifier: Cardio.Runtime::Cardio.Data.PuzzleData
+  PuzzleId: lv2_id_basilar_artery
+  Type: 0
+  Complexity: 2
+  Prompt: Click the vessel formed where the two vertebral arteries merge.
+  TargetStructureId: basilar_artery
   LabelText: 
-  Options:
-  - An artery supplying part of the brain becomes blocked
-  - A heart valve begins to leak
-  - The blood-brain barrier thickens
-  - Venous sinuses widen
+  Options: []
   CorrectOptionIndex: 0
   SequenceSteps: []
-  Explanation: A blockage, usually a clot, cuts off blood flow to a region of brain
-    tissue. Without oxygen and glucose those neurons begin to die within minutes.
-  Hint: '''Ischaemia'' means an inadequate blood supply.'
---- !u!114 &-6065773997376406350
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 0}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 5774bd79aa42c7f42b20b5b97d4c619d, type: 3}
-  m_Name: lv2_mc_oxygen_share
-  m_EditorClassIdentifier: Assembly-CSharp::Cardio.Data.PuzzleData
-  PuzzleId: lv2_mc_oxygen_share
-  Type: 4
-  Complexity: 3
-  Prompt: Roughly what proportion of the body's oxygen does the resting brain consume?
-  TargetStructureId: 
-  LabelText: 
-  Options:
-  - About 20%
-  - About 2%
-  - About 50%
-  - About 75%
-  CorrectOptionIndex: 0
-  SequenceSteps: []
-  Explanation: About 20%, despite the brain being only around 2% of body weight.
-    That mismatch is why even a brief interruption of cerebral blood flow causes
-    symptoms so quickly.
-  Hint: It is far out of proportion to the brain's share of body weight.
---- !u!114 &-5373025001896584338
+  Explanation: The basilar artery. It runs up the front of the brainstem, supplies
+    the brainstem and cerebellum, and feeds the posterior part of the Circle of Willis.
+  Hint: It is the single wide vessel you started the level in.
+--- !u!114 &-4630038425475732675
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -68,7 +35,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 5774bd79aa42c7f42b20b5b97d4c619d, type: 3}
   m_Name: lv2_mc_blood_brain_barrier
-  m_EditorClassIdentifier: Assembly-CSharp::Cardio.Data.PuzzleData
+  m_EditorClassIdentifier: Cardio.Runtime::Cardio.Data.PuzzleData
   PuzzleId: lv2_mc_blood_brain_barrier
   Type: 4
   Complexity: 2
@@ -86,92 +53,7 @@ MonoBehaviour:
     letting oxygen and glucose through while blocking many toxins, pathogens and
     drugs.
   Hint: The clue is in the word 'barrier'.
---- !u!114 &-3399488739369269423
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 0}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 5774bd79aa42c7f42b20b5b97d4c619d, type: 3}
-  m_Name: lv2_mc_collateral
-  m_EditorClassIdentifier: Assembly-CSharp::Cardio.Data.PuzzleData
-  PuzzleId: lv2_mc_collateral
-  Type: 4
-  Complexity: 3
-  Prompt: Why is the Circle of Willis clinically important?
-  TargetStructureId: 
-  LabelText: 
-  Options:
-  - It can reroute blood if one supplying artery becomes blocked
-  - It stores oxygenated blood for emergencies
-  - It filters clots out of the blood
-  - It generates the heartbeat
-  CorrectOptionIndex: 0
-  SequenceSteps: []
-  Explanation: Because it is a ring rather than a dead end, flow can arrive at a
-    region from more than one direction. This collateral circulation can limit the
-    damage from a single blocked vessel.
-  Hint: Consider the advantage of a loop over a one-way pipe.
---- !u!114 &-2370931333516807917
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 0}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 5774bd79aa42c7f42b20b5b97d4c619d, type: 3}
-  m_Name: lv2_mc_basilar
-  m_EditorClassIdentifier: Assembly-CSharp::Cardio.Data.PuzzleData
-  PuzzleId: lv2_mc_basilar
-  Type: 4
-  Complexity: 2
-  Prompt: The two vertebral arteries merge to form which vessel?
-  TargetStructureId: 
-  LabelText: 
-  Options:
-  - Basilar artery
-  - Aorta
-  - Superior vena cava
-  - Carotid sinus
-  CorrectOptionIndex: 0
-  SequenceSteps: []
-  Explanation: The basilar artery. It runs along the front of the brainstem and supplies
-    the cerebellum and posterior cerebrum.
-  Hint: It sits at the base of the brain, which is where its name comes from.
---- !u!114 &-1676724808109868509
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 0}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 5774bd79aa42c7f42b20b5b97d4c619d, type: 3}
-  m_Name: lv2_mc_two_supplies
-  m_EditorClassIdentifier: Assembly-CSharp::Cardio.Data.PuzzleData
-  PuzzleId: lv2_mc_two_supplies
-  Type: 4
-  Complexity: 1
-  Prompt: Which pair of arterial systems supplies the brain?
-  TargetStructureId: 
-  LabelText: 
-  Options:
-  - Internal carotid and vertebral arteries
-  - Pulmonary and bronchial arteries
-  - Renal and splenic arteries
-  - Femoral and iliac arteries
-  CorrectOptionIndex: 0
-  SequenceSteps: []
-  Explanation: The internal carotid arteries supply the front of the brain and the
-    vertebral arteries the back. They meet at the Circle of Willis.
-  Hint: One pair runs up the neck at the front, the other through the vertebrae.
---- !u!114 &-1358676407726874767
+--- !u!114 &-4525841635029589982
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -182,7 +64,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 5774bd79aa42c7f42b20b5b97d4c619d, type: 3}
   m_Name: lv2_mc_venous_drainage
-  m_EditorClassIdentifier: Assembly-CSharp::Cardio.Data.PuzzleData
+  m_EditorClassIdentifier: Cardio.Runtime::Cardio.Data.PuzzleData
   PuzzleId: lv2_mc_venous_drainage
   Type: 4
   Complexity: 2
@@ -199,35 +81,6 @@ MonoBehaviour:
   Explanation: The internal jugular veins. They collect from the dural venous sinuses
     and drain into the brachiocephalic veins and then the superior vena cava.
   Hint: They run down the neck alongside the carotid arteries.
---- !u!114 &-1106014191522192718
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 0}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 5774bd79aa42c7f42b20b5b97d4c619d, type: 3}
-  m_Name: lv2_mc_grey_matter
-  m_EditorClassIdentifier: Assembly-CSharp::Cardio.Data.PuzzleData
-  PuzzleId: lv2_mc_grey_matter
-  Type: 4
-  Complexity: 2
-  Prompt: Which brain tissue has the higher blood flow requirement per gram?
-  TargetStructureId: 
-  LabelText: 
-  Options:
-  - Grey matter
-  - White matter
-  - The dura mater
-  - The skull
-  CorrectOptionIndex: 0
-  SequenceSteps: []
-  Explanation: Grey matter. It is dense with neuron cell bodies and synapses, which
-    are metabolically expensive, so it receives several times the blood flow of white
-    matter.
-  Hint: Think about which tissue contains the neuron cell bodies.
 --- !u!114 &11400000
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -239,22 +92,25 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 74d8da11601f4e543a81f3121335324b, type: 3}
   m_Name: QuestionBank_Level2_Brain
-  m_EditorClassIdentifier: Assembly-CSharp::Cardio.Data.QuestionBank
+  m_EditorClassIdentifier: Cardio.Runtime::Cardio.Data.QuestionBank
   Level: 2
   Puzzles:
-  - {fileID: 7444445566406092392}
-  - {fileID: 5278320390046939581}
-  - {fileID: 764637956762472094}
-  - {fileID: 7536484959044620274}
-  - {fileID: -1676724808109868509}
-  - {fileID: -2370931333516807917}
-  - {fileID: -5373025001896584338}
-  - {fileID: -1358676407726874767}
-  - {fileID: -1106014191522192718}
-  - {fileID: -6065773997376406350}
-  - {fileID: -6422455751470775392}
-  - {fileID: -3399488739369269423}
---- !u!114 &764637956762472094
+  - {fileID: 1482127152872037684}
+  - {fileID: 3812611862782944820}
+  - {fileID: 668522934748871812}
+  - {fileID: 8568825889852521314}
+  - {fileID: 7137336608627185586}
+  - {fileID: 7247964219897367878}
+  - {fileID: -4630038425475732675}
+  - {fileID: -4525841635029589982}
+  - {fileID: 6423178386475606269}
+  - {fileID: 1685856857113630326}
+  - {fileID: 973562544387840077}
+  - {fileID: 8162826909991193805}
+  - {fileID: 4472089516350479122}
+  - {fileID: -7012736118328308994}
+  - {fileID: 4311029204535690228}
+--- !u!114 &668522934748871812
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -265,7 +121,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 5774bd79aa42c7f42b20b5b97d4c619d, type: 3}
   m_Name: lv2_flow_venous_return
-  m_EditorClassIdentifier: Assembly-CSharp::Cardio.Data.PuzzleData
+  m_EditorClassIdentifier: Cardio.Runtime::Cardio.Data.PuzzleData
   PuzzleId: lv2_flow_venous_return
   Type: 2
   Complexity: 2
@@ -285,7 +141,7 @@ MonoBehaviour:
     vena cava.
   Hint: Finish at the chamber that receives all deoxygenated blood from the upper
     body.
---- !u!114 &5278320390046939581
+--- !u!114 &973562544387840077
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -295,26 +151,25 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 5774bd79aa42c7f42b20b5b97d4c619d, type: 3}
-  m_Name: lv2_flow_vertebral
-  m_EditorClassIdentifier: Assembly-CSharp::Cardio.Data.PuzzleData
-  PuzzleId: lv2_flow_vertebral
-  Type: 2
+  m_Name: lv2_mc_ischaemic_stroke
+  m_EditorClassIdentifier: Cardio.Runtime::Cardio.Data.PuzzleData
+  PuzzleId: lv2_mc_ischaemic_stroke
+  Type: 4
   Complexity: 3
-  Prompt: Order the vertebral route to the back of the brain.
+  Prompt: 'An ischaemic stroke occurs when:'
   TargetStructureId: 
   LabelText: 
-  Options: []
+  Options:
+  - An artery supplying part of the brain becomes blocked
+  - A heart valve begins to leak
+  - The blood-brain barrier thickens
+  - Venous sinuses widen
   CorrectOptionIndex: 0
-  SequenceSteps:
-  - Subclavian Artery
-  - Vertebral Artery
-  - Basilar Artery
-  - Posterior Cerebral Artery
-  Explanation: The vertebral arteries branch from the subclavian arteries, run up
-    through the vertebrae, and merge to form the basilar artery, which supplies the
-    posterior brain.
-  Hint: The two vertebral arteries join before they branch again.
---- !u!114 &7444445566406092392
+  SequenceSteps: []
+  Explanation: A blockage, usually a clot, cuts off blood flow to a region of brain
+    tissue. Without oxygen and glucose those neurons begin to die within minutes.
+  Hint: '''Ischaemia'' means an inadequate blood supply.'
+--- !u!114 &1482127152872037684
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -325,7 +180,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 5774bd79aa42c7f42b20b5b97d4c619d, type: 3}
   m_Name: lv2_flow_carotid
-  m_EditorClassIdentifier: Assembly-CSharp::Cardio.Data.PuzzleData
+  m_EditorClassIdentifier: Cardio.Runtime::Cardio.Data.PuzzleData
   PuzzleId: lv2_flow_carotid
   Type: 2
   Complexity: 2
@@ -344,7 +199,230 @@ MonoBehaviour:
     and internal branches. The internal carotid enters the skull and feeds the Circle
     of Willis.
   Hint: Start at the vessel leaving the heart.
---- !u!114 &7536484959044620274
+--- !u!114 &1685856857113630326
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5774bd79aa42c7f42b20b5b97d4c619d, type: 3}
+  m_Name: lv2_mc_oxygen_share
+  m_EditorClassIdentifier: Cardio.Runtime::Cardio.Data.PuzzleData
+  PuzzleId: lv2_mc_oxygen_share
+  Type: 4
+  Complexity: 3
+  Prompt: Roughly what proportion of the body's oxygen does the resting brain consume?
+  TargetStructureId: 
+  LabelText: 
+  Options:
+  - About 20%
+  - About 2%
+  - About 50%
+  - About 75%
+  CorrectOptionIndex: 0
+  SequenceSteps: []
+  Explanation: About 20%, despite the brain being only around 2% of body weight.
+    That mismatch is why even a brief interruption of cerebral blood flow causes
+    symptoms so quickly.
+  Hint: It is far out of proportion to the brain's share of body weight.
+--- !u!114 &3812611862782944820
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5774bd79aa42c7f42b20b5b97d4c619d, type: 3}
+  m_Name: lv2_flow_vertebral
+  m_EditorClassIdentifier: Cardio.Runtime::Cardio.Data.PuzzleData
+  PuzzleId: lv2_flow_vertebral
+  Type: 2
+  Complexity: 3
+  Prompt: Order the vertebral route to the back of the brain.
+  TargetStructureId: 
+  LabelText: 
+  Options: []
+  CorrectOptionIndex: 0
+  SequenceSteps:
+  - Subclavian Artery
+  - Vertebral Artery
+  - Basilar Artery
+  - Posterior Cerebral Artery
+  Explanation: The vertebral arteries branch from the subclavian arteries, run up
+    through the vertebrae, and merge to form the basilar artery, which supplies the
+    posterior brain.
+  Hint: The two vertebral arteries join before they branch again.
+--- !u!114 &4311029204535690228
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5774bd79aa42c7f42b20b5b97d4c619d, type: 3}
+  m_Name: lv2_drag_internal_carotid
+  m_EditorClassIdentifier: Cardio.Runtime::Cardio.Data.PuzzleData
+  PuzzleId: lv2_drag_internal_carotid
+  Type: 1
+  Complexity: 2
+  Prompt: Drag the label onto the paired vessels that carry the anterior blood supply
+    into the skull.
+  TargetStructureId: internal_carotid
+  LabelText: Internal Carotid
+  Options: []
+  CorrectOptionIndex: 0
+  SequenceSteps: []
+  Explanation: Correct. The internal carotid arteries are the anterior supply, and
+    together they deliver most of the blood the brain receives.
+  Hint: They are the two long vessels running down either side of the level.
+--- !u!114 &4472089516350479122
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5774bd79aa42c7f42b20b5b97d4c619d, type: 3}
+  m_Name: lv2_id_circle_of_willis
+  m_EditorClassIdentifier: Cardio.Runtime::Cardio.Data.PuzzleData
+  PuzzleId: lv2_id_circle_of_willis
+  Type: 0
+  Complexity: 1
+  Prompt: Click the ring of arteries that joins the front and back blood supplies
+    of the brain.
+  TargetStructureId: circle_of_willis
+  LabelText: 
+  Options: []
+  CorrectOptionIndex: 0
+  SequenceSteps: []
+  Explanation: The Circle of Willis. Because it is a closed ring rather than a dead
+    end, blood can reach a region from more than one direction - which is what makes
+    collateral flow possible.
+  Hint: It is the open circular chamber at the centre of the level.
+--- !u!114 &6423178386475606269
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5774bd79aa42c7f42b20b5b97d4c619d, type: 3}
+  m_Name: lv2_mc_grey_matter
+  m_EditorClassIdentifier: Cardio.Runtime::Cardio.Data.PuzzleData
+  PuzzleId: lv2_mc_grey_matter
+  Type: 4
+  Complexity: 2
+  Prompt: Which brain tissue has the higher blood flow requirement per gram?
+  TargetStructureId: 
+  LabelText: 
+  Options:
+  - Grey matter
+  - White matter
+  - The dura mater
+  - The skull
+  CorrectOptionIndex: 0
+  SequenceSteps: []
+  Explanation: Grey matter. It is dense with neuron cell bodies and synapses, which
+    are metabolically expensive, so it receives several times the blood flow of white
+    matter.
+  Hint: Think about which tissue contains the neuron cell bodies.
+--- !u!114 &7137336608627185586
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5774bd79aa42c7f42b20b5b97d4c619d, type: 3}
+  m_Name: lv2_mc_two_supplies
+  m_EditorClassIdentifier: Cardio.Runtime::Cardio.Data.PuzzleData
+  PuzzleId: lv2_mc_two_supplies
+  Type: 4
+  Complexity: 1
+  Prompt: Which pair of arterial systems supplies the brain?
+  TargetStructureId: 
+  LabelText: 
+  Options:
+  - Internal carotid and vertebral arteries
+  - Pulmonary and bronchial arteries
+  - Renal and splenic arteries
+  - Femoral and iliac arteries
+  CorrectOptionIndex: 0
+  SequenceSteps: []
+  Explanation: The internal carotid arteries supply the front of the brain and the
+    vertebral arteries the back. They meet at the Circle of Willis.
+  Hint: One pair runs up the neck at the front, the other through the vertebrae.
+--- !u!114 &7247964219897367878
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5774bd79aa42c7f42b20b5b97d4c619d, type: 3}
+  m_Name: lv2_mc_basilar
+  m_EditorClassIdentifier: Cardio.Runtime::Cardio.Data.PuzzleData
+  PuzzleId: lv2_mc_basilar
+  Type: 4
+  Complexity: 2
+  Prompt: The two vertebral arteries merge to form which vessel?
+  TargetStructureId: 
+  LabelText: 
+  Options:
+  - Basilar artery
+  - Aorta
+  - Superior vena cava
+  - Carotid sinus
+  CorrectOptionIndex: 0
+  SequenceSteps: []
+  Explanation: The basilar artery. It runs along the front of the brainstem and supplies
+    the cerebellum and posterior cerebrum.
+  Hint: It sits at the base of the brain, which is where its name comes from.
+--- !u!114 &8162826909991193805
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5774bd79aa42c7f42b20b5b97d4c619d, type: 3}
+  m_Name: lv2_mc_collateral
+  m_EditorClassIdentifier: Cardio.Runtime::Cardio.Data.PuzzleData
+  PuzzleId: lv2_mc_collateral
+  Type: 4
+  Complexity: 3
+  Prompt: Why is the Circle of Willis clinically important?
+  TargetStructureId: 
+  LabelText: 
+  Options:
+  - It can reroute blood if one supplying artery becomes blocked
+  - It stores oxygenated blood for emergencies
+  - It filters clots out of the blood
+  - It generates the heartbeat
+  CorrectOptionIndex: 0
+  SequenceSteps: []
+  Explanation: Because it is a ring rather than a dead end, flow can arrive at a
+    region from more than one direction. This collateral circulation can limit the
+    damage from a single blocked vessel.
+  Hint: Consider the advantage of a loop over a one-way pipe.
+--- !u!114 &8568825889852521314
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -355,7 +433,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 5774bd79aa42c7f42b20b5b97d4c619d, type: 3}
   m_Name: lv2_mc_circle_of_willis
-  m_EditorClassIdentifier: Assembly-CSharp::Cardio.Data.PuzzleData
+  m_EditorClassIdentifier: Cardio.Runtime::Cardio.Data.PuzzleData
   PuzzleId: lv2_mc_circle_of_willis
   Type: 4
   Complexity: 1

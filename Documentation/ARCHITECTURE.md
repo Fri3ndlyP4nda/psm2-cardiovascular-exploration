@@ -224,7 +224,7 @@ pause the game. `PauseMenuUI` is now the sole owner of Escape and routes it to
 | `Generation/ProjectAssets.cs` | Folders, tags, layers, shared materials, guaranteed TMP font. |
 | `Generation/UIFactory.cs` | uGUI widget builders (canvas, button, slider, toggle, input field, …). |
 | `Generation/PrefabFactory.cs` | Builds the Bloo.D. Clot voxel prefab from primitives. |
-| `Generation/EnvironmentFactory.cs` | Procedural voxel environments and lighting setup. |
+| `Generation/EnvironmentFactory.cs` | Procedural voxel environments and lighting setup. One builder per level, plus `BuildJunctionDisc` for branching. |
 | `Generation/SceneFactory.cs` | Builds all five scenes and registers them in Build Settings. |
 | `Generation/EditorWiring.cs` | Assigns `[SerializeField] private` fields through `SerializedObject`. |
 
@@ -259,8 +259,8 @@ lock mode, so those two can never disagree with the visible UI.
 | `MainMenu` | 0 | UI camera, EventSystem, `UI_MainMenu` canvas |
 | `Login` | 1 | UI camera, EventSystem, `UI_Login` canvas |
 | `Level1_LeftVentricle` | 2 | Environment, player, orbit camera, `UI_HUD`, `UI_Menus`, `LevelController`, `LevelExit` |
-| `Level2_Brain` | 3 | Placeholder room, same UI/controller structure |
-| `Level3_RightVentricle` | 4 | Placeholder room, same UI/controller structure |
+| `Level2_Brain` | 3 | Cerebral vessel network, same UI/controller structure |
+| `Level3_RightVentricle` | 4 | Right ventricle and pulmonary outflow, same UI/controller structure |
 
 No scene contains a manager that must survive a load — that is `GameBootstrap`'s job.
 
@@ -288,6 +288,77 @@ Six `AnatomyMarker` structures carry an id, a display name and a one-line descri
 `left_ventricle`, `mitral_valve`, `aortic_valve`, `papillary_muscle`,
 `interventricular_septum`, `aorta`. Those ids are the keys the Phase 2 puzzle system
 will match answers against.
+
+## 6b. Levels 2 and 3 anatomy (Phase 8)
+
+### Level 2 — cerebral circulation
+
+```
+        [ Vertebral inlet ]  <- spawn
+               |
+        BASILAR ARTERY  ---X---   <- THROMBUS: seals this route outright
+               |
+   ( ... only reachable the long way round ... )
+               |
+   [ int. carotid ] -> [ ascending ] -> [ middle cerebral ] 
+               \                                  /
+                >------ CIRCLE OF WILLIS --------<
+                              |
+                     CEREBRAL ARTERIES -> exit
+```
+
+Six tagged structures: `circle_of_willis`, `basilar_artery`, `internal_carotid`,
+`middle_cerebral_artery`, `cerebral_arteries`, `thrombus`.
+
+The thrombus is the level's teaching mechanism rather than an obstacle. Sealing the
+basilar means the only route is via a carotid and across the ring — which is exactly
+what the Circle of Willis is *for*. The A* self-check measures that detour at 10.4x
+the straight-line distance, and asserts it both blocks and leaves a way round.
+
+### Level 3 — right ventricle
+
+```
+   [ Right atrium passage ]
+             |
+      TRICUSPID VALVE            <- inflow, THREE cusps, -Z
+             |
+   ┌──── RIGHT VENTRICLE ────┐
+   │  three papillary muscles │
+   │  moderator band          │  <- RV-only; no left-ventricle equivalent
+   │  septum on the +X wall   │  <- other side of the same wall as Level 1
+   └──────────┬──────────────┘
+      PULMONARY VALVE             <- semilunar, three cusps, +Z
+             |
+     PULMONARY ARTERY             <- rendered in deoxygenated blue
+             |
+         LEVEL EXIT
+```
+
+Seven tagged structures, including `moderator_band` and a `pulmonary_artery` whose
+colour carries the single most-misremembered fact in the topic. The chamber wall is
+1.4 thick against Level 1's 2.2, because the right ventricle pumps at roughly a
+fifth of left-ventricular pressure — the contrast *is* the lesson, and
+`lv3_mc_wall_thickness` asks about it directly.
+
+### A third rule learned the hard way: every junction is a disc
+
+`BuildCorridor` always emits two full-length side walls. Compose a T-junction from
+two overlapping corridors and those walls run straight across the through-route.
+
+The first Level 2 build did exactly this and was **completely unplayable** — every
+station unreachable, the spawn sealed inside a wall. Nothing caught it, because every
+other automated test in the project loads Level 1. A subtler second instance survived
+the first fix: corridor walls reaching several units *into* a junction still split it.
+
+So: **branches are made with `BuildJunctionDisc`** — a floor with a ring wall broken
+by one gap per corridor, which has no interior walls to cut anything — and corridors
+butt at the disc edge, intruding only far enough that their walls stay inside the gap
+arc.
+
+The durable half of the fix is the check, not the geometry. `AStarSelfCheck` now
+asserts every station and the exit are reachable from the spawn in Levels 2 and 3.
+That is the property that makes a level completable, and it is fully decidable from
+the grid — no Play mode, no human.
 
 ## 7. Data flow today, and where later phases attach
 

@@ -1,4 +1,4 @@
-# Testing — Phase 6
+# Testing — Phase 8
 
 White-box test procedures for the systems that exist today. Each case names the script
 under test, so the PSM2 report can map a test back to a code path.
@@ -25,13 +25,13 @@ paths. It does **not** exercise uGUI: no button is clicked, no chip is dragged, 
 
 ## Automated coverage
 
-168 automated checks run without a human — 72 self-check assertions plus 96 NUnit
-test cases (30 EditMode, 66 PlayMode). Run them before every commit.
+194 automated checks run without a human — 93 self-check assertions plus 101 NUnit
+test cases (35 EditMode, 66 PlayMode). Run them before every commit.
 
 The two units are not the same thing and the table below mixes them: the self-checks
 count individual assertions, while the NUnit rows count *test cases* (a case may make
 several assertions, and a `[ValueSource]` method expands into one case per value —
-which is why `PuzzleContentTests` reports 21 cases from 9 methods).
+which is why `PuzzleContentTests` reports 26 cases from 11 methods).
 
 ```bash
 "C:\Program Files\Unity\Hub\Editor\6000.5.8f1\Editor\Unity.exe" -batchmode -quit -projectPath "C:\Users\User\Downloads\PSM 2 Along" -executeMethod Cardio.EditorTools.DiagnosticsRunner.RunAll -logFile checks.log
@@ -49,8 +49,8 @@ which is why `PuzzleContentTests` reports 21 cases from 9 methods).
 |---|---|---|
 | `PerformanceSelfCheck` | 24 | scoring rule, par times, aggregate formulas, divide-by-zero guards |
 | `DDASelfCheck` | 33 | difficulty policy in both directions; prints the decision table |
-| `AStarSelfCheck` | 15 | grid and pathfinding against real Level 1 geometry |
-| `PuzzleContentTests` (EditMode) | 21 | every shipped puzzle validated, and answered right and wrong |
+| `AStarSelfCheck` | 36 | grid and pathfinding against real Level 1 geometry, plus **Levels 2 and 3 navigability**: every station and the exit reachable from the spawn, and Level 2's collateral route around the thrombus |
+| `PuzzleContentTests` (EditMode) | 26 | every shipped puzzle validated and answered right and wrong; structure targets checked against **every** level scene; all five formats present per level |
 | `SavePersistenceTests` (EditMode) | 9 | save/load, unlocking, corruption recovery, offline queue |
 | `AdaptiveLoopIntegrationTests` (PlayMode) | 3 | the whole loop connected end to end |
 | `PlayerAndHazardTests` (PlayMode) | 12 | movement, collision, jumping, pause, Blood Count, hazards, **corridor edge barriers** |
@@ -79,12 +79,12 @@ which is why `PuzzleContentTests` reports 21 cases from 9 methods).
 | TC-13 Sequence / multiple choice | **Mostly** | Pass | Partly | Validation and manager flow automated. **Clicking the buttons is MANUAL REQUIRED** |
 | TC-14 Objectives / exit gating | **Yes** | Pass | No | Ticking, gating, blocked message, completion, unlocking |
 | TC-15 Hints | **Yes** | Pass | No | Manual vs automatic counting, tier-dependent triggering. **The structure glow is visual** |
-| TC-16 Content integrity | **Yes** | Pass | No | All 38 puzzles validated |
+| TC-16 Content integrity | **Yes** | Pass | No | All 44 puzzles validated (14 + 15 + 15) |
 | TC-17 Metric arithmetic | **Yes** | Pass | No | Pure functions |
 | TC-18 Metric capture | **Yes** | Pass | No | Timing, accuracy, streaks, session mirroring |
 | TC-19 DDA policy | **Yes** | Pass | No | Both directions, overrides, gates |
 | TC-20 DDA in play | **Yes** | Pass | No | Promotion, demotion, and every consumer receiving the change |
-| TC-21 A* pathfinding | **Yes** | Pass | No | Grid, routes, clearance, blockades |
+| TC-21 A* pathfinding | **Yes** | Pass | No | Grid, routes, clearance, blockades, **and that all three levels are completable** |
 | TC-22 Obstacles in play | **Mostly** | Pass | Partly | Grid build, movement, no tunnelling, no stuck recoveries, tier speed. **Whether a chase feels threatening is MANUAL REQUIRED** |
 | TC-23 Performance / 60 FPS | No | — | **MANUAL REQUIRED** | Batch mode has no renderer; frame timing there is meaningless |
 | TC-24 Combat and earned hints | **Mostly** | Pass | Partly | Spawn-on-wrong-answer, puzzle tagging, kill→hint delivery, score penalty/bonus and respawn all automated. **Whether the blast reads as threatening rather than annoying is MANUAL REQUIRED** |
@@ -260,7 +260,7 @@ player today.
 
 | # | Step | Expected |
 |---|---|---|
-| 1 | Run the validator | "no problems found" |
+| 1 | Run the validator | "no problems found" — all 44 puzzles across the three banks |
 | 2 | Set a puzzle's `CorrectOptionIndex` beyond its option count, re-run | An error naming that puzzle id |
 | 3 | Change a `TargetStructureId` to a typo, re-run | An error saying the structure does not appear in the level scene |
 | 4 | Edit a question's wording, then run `PSM2 ▸ Setup ▸ Build or Rebuild Project` | The edit **survives** — banks are not overwritten by a rebuild |
@@ -348,7 +348,7 @@ Select `[Cardio Systems]` during Play to watch `currentTier`, `lastScore` and
 
 ## TC-21 A* pathfinding — `AStarPathfindingManager` (automated)
 
-Run `PSM2 ▸ Diagnostics ▸ Run A* Pathfinding Self-Check`. Expect **"15 passed, 0 failed"**.
+Run `PSM2 ▸ Diagnostics ▸ Run A* Pathfinding Self-Check`. Expect **"36 passed, 0 failed"**.
 It opens the real Level 1, builds the grid from actual geometry, and asserts:
 
 | Group | Assertion |
@@ -358,6 +358,8 @@ It opens the real Level 1, builds the grid from actual geometry, and asserts:
 | Clearance | 4 routes across the chamber, past the papillary muscles and diagonally; **every waypoint re-tested against Environment + Obstacle layers, 0 inside geometry** |
 | Blockade | sealing the aorta corridor changes the answer (longer route, or unreachable); unblocking restores the original |
 | Degenerate | same start/goal succeeds; out-of-bounds goal returns cleanly; a goal inside a wall is rescued by the nearest-walkable ring search |
+| **Levels 2 and 3 navigable** | grid builds; **every puzzle station and the exit reachable from the spawn** — the property that makes a level completable at all |
+| **Level 2 collateral route** | the thrombus seals the basilar outright, and the way round via a carotid and the Circle of Willis exists — measured at 93.8 units against a 9.0 unit straight line (10.4x) |
 
 `PSM2 ▸ Diagnostics ▸ Dump A* Walkability Profile` prints an ASCII map of the grid
 along the level spine — the fastest way to find where a route has closed up.
@@ -397,7 +399,7 @@ Record the test machine's CPU, GPU and resolution alongside the result.
 # MANUAL PLAYTEST CHECKLIST
 
 Only things that genuinely cannot be automated. Everything else above is covered by
-the 168 automated checks — do not re-test it by hand.
+the 194 automated checks — do not re-test it by hand.
 
 Open `Assets/Scenes/MainMenu.unity`, press Play.
 
@@ -426,9 +428,18 @@ Open `Assets/Scenes/MainMenu.unity`, press Play.
 14. Approach each of the six anatomy markers — labels appear, hide on leaving, and **stay facing the camera**.
 15. Blood Count below 30% — does the bar turn orange?
 
+### D2. Levels 2 and 3 (new in Phase 8 — never played by anyone)
+15a. Level 2: walk into the basilar and confirm the thrombus visibly blocks it, then find the way round via a carotid. Does the detour read as *discovering collateral circulation*, or just as a wall and a long walk?
+15b. Level 2: do the narrow 6-unit vessels feel claustrophobic in a good way, or is the camera fighting the walls?
+15c. Level 3: is the right ventricle wall visibly thinner than Level 1's, without being told? That contrast is the teaching point.
+15d. Level 3: does the blue pulmonary artery read as "deoxygenated", and is the moderator band legible as a structure rather than scenery?
+15e. Level 3 has six agents against Level 1's three. Is that dense or merely noisy?
+
 ### E. Anatomical accuracy review (needs your subject knowledge)
-16. Read all 38 explanations. Confirm mitral = bicuspid, aortic/pulmonary = semilunar with three cusps, papillary muscles anchor via chordae tendineae, septum divides the ventricles, pulmonary artery carries deoxygenated blood.
+16. Read all 44 explanations. Confirm mitral = bicuspid, aortic/pulmonary = semilunar with three cusps, papillary muscles anchor via chordae tendineae, septum divides the ventricles, pulmonary artery carries deoxygenated blood.
 17. Confirm the Level 1 layout reads as a left ventricle to someone who knows the anatomy.
+17a. **Level 2 (new):** confirm the Circle of Willis ring, the carotid/vertebrobasilar split, and the claim that a basilar occlusion can be bypassed collaterally all hold up. The level's whole structure asserts this.
+17b. **Level 3 (new):** confirm tricuspid = 3 cusps, pulmonary valve = semilunar, pulmonary artery carries deoxygenated blood, the moderator band is RV-only, and that the septum reads correctly from the right side.
 
 ### F. Performance (TC-23)
 18. Watch the HUD FPS counter for 5 minutes in Level 1 — **≥ 60 FPS**, counter green. Record CPU/GPU/resolution.
@@ -443,7 +454,7 @@ Open `Assets/Scenes/MainMenu.unity`, press Play.
 
 ---
 
-## Known limitations at Phase 6
+## Known limitations at Phase 8
 
 Stated explicitly so they are not mistaken for defects:
 
@@ -459,15 +470,11 @@ Stated explicitly so they are not mistaken for defects:
    still clear the promote threshold. It is a safety net for retuning, and the
    self-check exercises it with a softened penalty rather than pretending the default
    path reaches it.
-4. Level 2 and 3 question banks contain complexity-3 puzzles, but their placeholder
-   scenes only host two stations each, so the DDA has little to work with there until
-   Phase 8.
-5. Levels 2 and 3 are labelled placeholder rooms. Their question banks are complete
-   (12 puzzles each) but only the two panel-answered formats are reachable there,
-   because those scenes have no tagged anatomy yet. Two stations each are placed so
-   the flow is still testable.
-6. The art is procedural greybox voxel geometry, not MagicaVoxel assets.
-7. `HintSource.Requested` is unreachable in play. The hint button was removed in the
+4. The art is procedural greybox voxel geometry, not MagicaVoxel assets.
+5. Level 2 contains no valve puzzle, deliberately. Cerebral arteries have no valves,
+   so the bank covers the other four formats there instead. `PuzzleContentTests`
+   asserts this rather than leaving it to look like an oversight.
+6. `HintSource.Requested` is unreachable in play. The hint button was removed in the
    combat rework, so the only hints a player can receive are `Automatic` (tier-driven)
    and `Earned` (killing a blast). `PuzzleManager.RequestHint()` is retained as a
    public API and is exercised by tests, not by the UI.
