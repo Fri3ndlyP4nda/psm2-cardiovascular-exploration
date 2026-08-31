@@ -41,3 +41,13 @@ crashlytics-build.properties
 
 # graphify local code-graph index - regenerate with `graphify update .`, not a project artifact
 /graphify-out/
+
+# Test-run output. The commands in Documentation/TESTING.md write these into the
+# project root; they are results, not sources - re-run the suites to regenerate.
+/checks.log
+/tests.log
+/edit.log
+/selfcheck.log
+/ddacheck.log
+/results.xml
+/edit.xml

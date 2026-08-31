@@ -44,13 +44,14 @@ to be added without editing Phase 1 or 2 code.
 
 ### Assemblies (Phase 6)
 
-Three assembly definitions, added when Phase 6 needed PlayMode tests:
+Four assembly definitions, added when Phase 6 needed PlayMode tests:
 
 | Assembly | Contents | Platforms |
 |---|---|---|
 | `Cardio.Runtime` | everything under `Assets/Scripts` except Editor | all |
 | `Cardio.Editor` | `Assets/Scripts/Editor` — generators, self-checks | Editor only |
 | `Cardio.Tests.PlayMode` | `Assets/Tests/PlayMode` | all, gated on `UNITY_INCLUDE_TESTS` |
+| `Cardio.Tests.EditMode` | `Assets/Tests/EditMode` | Editor only, gated on `UNITY_INCLUDE_TESTS` |
 
 The split exists for a concrete reason: Unity's test framework cannot reference the
 predefined `Assembly-CSharp`, so runtime code has to live in a named assembly before
@@ -151,7 +152,37 @@ in the Windows build.
 | `NodeHeap.cs` | Binary heap open set. O(log n) pops instead of O(n), which is what makes several agents re-path inside the frame budget. |
 | `PathfindingAgent.cs` | Requests, follows and re-requests paths. Moves through a CharacterController. Applies the DDA speed multiplier. Detects and recovers from being stuck. |
 | `ObstacleAgent.cs` | Behaviour on top of the agent: chase (neutrophil) or patrol (monocyte), plus contact damage. |
-| `ObstacleManager.cs` | Scene registry; can disable all obstacles wholesale for the fixed-difficulty control condition. |
+| `ObstacleManager.cs` | Scene registry; can disable all obstacles wholesale for the fixed-difficulty control condition. **Excludes leukemic blasts** — they reuse `ObstacleAgent`, so a naive scan would count them as neutrophils and the control switch would disable the hostiles. |
+
+### Combat and the hint economy (Phase 6)
+
+Added after the Phase 6 integration tests, when the HINT button was removed and hints
+became something the player earns.
+
+| Script | Responsibility |
+|---|---|
+| `Player/PlayerAttack.cs` | Range- and cooldown-gated attack. Damages leukemic blasts only. |
+| `AI/NpcHealth.cs` | Hit points, death and revival for one hostile. Does not decide what death means. |
+| `AI/LeukemicBlastAgent.cs` | The malignant cell. Movement is reused wholesale from `PathfindingAgent`/`ObstacleAgent`; this adds health, the `PuzzleId` it was spawned for, and respawning. |
+| `Gameplay/HostileSpawnDirector.cs` | Spawns one blast per wrong answer tagged to that `PuzzleId`; owns the all-dead respawn timer. |
+
+**Why a new cell type rather than reusing the existing obstacles.** The plot is the
+body under attack by a white blood cancer, so the hostiles are *cancerous* white blood
+cells. Neutrophils and monocytes stay untouchable hazards because they are the body's
+legitimate immune defenders — making them targets would teach that immune cells are
+the enemy, which contradicts the accuracy requirement.
+
+**Hint flow after the rework.** `HintSource` has three values: `Automatic` (the tier
+offers it unprompted), `Earned` (killing the blast that a wrong answer spawned reveals
+*that question's* hint), and `Requested` — which is now **unreachable in play**, since
+no UI calls `PuzzleManager.RequestHint()`. `HintsAlwaysAvailable` was repurposed as
+`PuzzleManager.HostileSpawningEnabled`, the gate deciding whether wrong answers spawn
+anything at all.
+
+**A CharacterController cannot be repositioned by writing `transform.position`.** It
+keeps its own idea of where it is and overwrites the change on the next move, silently.
+Anything relocating a blast goes through `LeukemicBlastAgent.MoveTo()`, which disables
+the controller around the write.
 
 **Why the grid is 2.5D rather than a voxel volume.** Every agent walks the floor under
 gravity, exactly like the player, so 3D cells would cost memory and search time on

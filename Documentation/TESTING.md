@@ -1,4 +1,4 @@
-# Testing — Phase 1
+# Testing — Phase 6
 
 White-box test procedures for the systems that exist today. Each case names the script
 under test, so the PSM2 report can map a test back to a code path.
@@ -25,7 +25,13 @@ paths. It does **not** exercise uGUI: no button is clicked, no chip is dragged, 
 
 ## Automated coverage
 
-159 assertions run without a human. Run them before every commit.
+168 automated checks run without a human — 72 self-check assertions plus 96 NUnit
+test cases (30 EditMode, 66 PlayMode). Run them before every commit.
+
+The two units are not the same thing and the table below mixes them: the self-checks
+count individual assertions, while the NUnit rows count *test cases* (a case may make
+several assertions, and a `[ValueSource]` method expands into one case per value —
+which is why `PuzzleContentTests` reports 21 cases from 9 methods).
 
 ```bash
 "C:\Program Files\Unity\Hub\Editor\6000.5.8f1\Editor\Unity.exe" -batchmode -quit -projectPath "C:\Users\User\Downloads\PSM 2 Along" -executeMethod Cardio.EditorTools.DiagnosticsRunner.RunAll -logFile checks.log
@@ -51,6 +57,7 @@ paths. It does **not** exercise uGUI: no button is clicked, no chip is dragged, 
 | `PuzzleFlowTests` (PlayMode) | 17 | stations, picking, answering, timing, hints, objectives, exit gating, panel visibility and Escape recovery |
 | `PuzzlePanelContentTests` (PlayMode) | 5 | what the panel actually displays for each of the five formats |
 | `PuzzleAffordanceTests` (PlayMode) | 7 | **hover highlighting and camera orbit during world-picking puzzles** |
+| `HostileCombatTests` (PlayMode) | 9 | wrong answer spawns one tagged leukemic blast, kill delivers that question's hint, score penalty and clear-level bonus, respawn |
 | `StateAndSceneTests` (PlayMode) | 13 | bootstrapping, scene loading, state machine, panel visibility |
 
 ## TC coverage map
@@ -80,6 +87,7 @@ paths. It does **not** exercise uGUI: no button is clicked, no chip is dragged, 
 | TC-21 A* pathfinding | **Yes** | Pass | No | Grid, routes, clearance, blockades |
 | TC-22 Obstacles in play | **Mostly** | Pass | Partly | Grid build, movement, no tunnelling, no stuck recoveries, tier speed. **Whether a chase feels threatening is MANUAL REQUIRED** |
 | TC-23 Performance / 60 FPS | No | — | **MANUAL REQUIRED** | Batch mode has no renderer; frame timing there is meaningless |
+| TC-24 Combat and earned hints | **Mostly** | Pass | Partly | Spawn-on-wrong-answer, puzzle tagging, kill→hint delivery, score penalty/bonus and respawn all automated. **Whether the blast reads as threatening rather than annoying is MANUAL REQUIRED** |
 
 The PlayMode suites are the only ones that prove the layers are *connected*; the
 others each verify one layer in isolation. Both are needed.
@@ -125,7 +133,7 @@ Covers the "Play from any scene" requirement and the singleton guard in
 | 1 | Walk into the fatty plaque in the aorta | Blood Count drops by 10; the bar shrinks |
 | 2 | Stay inside | One further −10 per second, not per frame |
 | 3 | Re-enter within 1 s of a hit | No damage (invulnerability window) |
-| 4 | Stay until 0 | "ATTEMPT FAILED" appears; `Session.FailedAttempts` increments |
+| 4 | Stay until 0 | "ATTEMPT FAILED" appears; `Session.LevelFailures` increments |
 | 5 | Below 30% | The bar turns orange |
 | 6 | Press Retry | The level reloads with Blood Count restored to 100 |
 
@@ -134,7 +142,7 @@ Covers the "Play from any scene" requirement and the singleton guard in
 | # | Step | Expected |
 |---|---|---|
 | 1 | Enter Level 1 | The player spawns behind the mitral valve, facing the chamber |
-| 2 | Check the clipboard | Four objective rows are listed, all unticked |
+| 2 | Check the clipboard | Seven objective rows are listed, all unticked — six puzzles plus the exit |
 | 3 | Reach the exit marker past the aorta | "LEVEL COMPLETE" appears; all rows tick off |
 | 4 | Press Next Level | Level 2 loads |
 | 5 | Complete Level 3 | The Next Level button is hidden; Main Menu returns to the menu |
@@ -232,13 +240,21 @@ Covers the "Play from any scene" requirement and the singleton guard in
 | 5 | Solve all six, then reach the exit | "LEVEL COMPLETE"; the exit row ticks too |
 | 6 | Reload the level | All rows reset to unticked |
 
-## TC-15 Hints — `PuzzleManager.RequestHint`
+## TC-15 Hints — `HintManager`, `PuzzleManager`
+
+**There is no HINT button.** It was removed in the combat rework: a hint is now either
+given automatically by the tier, or earned by killing the leukemic blast that a wrong
+answer spawned. `PuzzleManager.RequestHint()` still exists as a public API and is
+driven by tests, but no UI calls it — so `HintSource.Requested` is not reachable by a
+player today.
 
 | # | Step | Expected |
 |---|---|---|
-| 1 | Open any puzzle, press HINT | Hint text appears in the panel and on the HUD hint bar |
-| 2 | Check the end-of-level summary | "Hints used" has incremented by 1 per press |
-| 3 | Open a puzzle with no authored hint | The HINT button is hidden |
+| 1 | At Easy, open a puzzle and wait 12s without answering | A hint appears unprompted in the panel and on the HUD hint bar (`HintSource.Automatic`) |
+| 2 | At Hard, open a puzzle and wait | **No** unprompted hint ever appears — Hard's rate is Low |
+| 3 | Answer a puzzle wrong, then find and kill the blast it spawned | That question's hint is delivered (`HintSource.Earned`) |
+| 4 | Check the end-of-level summary | Automatic and earned hints are counted separately from requested ones, and an auto-hint does **not** reduce the score |
+| 5 | Open a puzzle with no authored hint | Nothing is offered and no hint is counted |
 
 ## TC-16 Content integrity — `PSM2 ▸ Content ▸ Validate Question Banks`
 
@@ -381,7 +397,7 @@ Record the test machine's CPU, GPU and resolution alongside the result.
 # MANUAL PLAYTEST CHECKLIST
 
 Only things that genuinely cannot be automated. Everything else above is covered by
-the 146 automated assertions — do not re-test it by hand.
+the 168 automated checks — do not re-test it by hand.
 
 Open `Assets/Scenes/MainMenu.unity`, press Play.
 
@@ -391,7 +407,7 @@ Open `Assets/Scenes/MainMenu.unity`, press Play.
 3. Toggle **fullscreen**; relaunch and confirm it stuck.
 4. In a puzzle, **click** a multiple-choice option and **click** sequence steps in order.
 5. In a drag-and-drop puzzle, **drag the label chip onto the structure in the chamber**. Then drop one on the panel itself and confirm it is rejected politely.
-6. Press the HINT and CLOSE buttons with the mouse.
+6. Press the CLOSE button with the mouse. (There is no HINT button — hints are automatic or earned by killing a blast.)
 
 ### B. Cursor and window
 7. In gameplay the cursor is hidden and captured; opening a puzzle releases it; closing recaptures it.
@@ -446,11 +462,12 @@ Stated explicitly so they are not mistaken for defects:
 4. Level 2 and 3 question banks contain complexity-3 puzzles, but their placeholder
    scenes only host two stations each, so the DDA has little to work with there until
    Phase 8.
-7. Levels 2 and 3 are labelled placeholder rooms. Their question banks are complete
+5. Levels 2 and 3 are labelled placeholder rooms. Their question banks are complete
    (12 puzzles each) but only the two panel-answered formats are reachable there,
    because those scenes have no tagged anatomy yet. Two stations each are placed so
    the flow is still testable.
-8. The art is procedural greybox voxel geometry, not MagicaVoxel assets.
-9. No automated tests yet. `com.unity.test-framework` is installed, but testing code
-   in `Assembly-CSharp` requires moving the runtime scripts behind assembly
-   definitions — deferred to Phase 10 rather than done piecemeal.
+6. The art is procedural greybox voxel geometry, not MagicaVoxel assets.
+7. `HintSource.Requested` is unreachable in play. The hint button was removed in the
+   combat rework, so the only hints a player can receive are `Automatic` (tier-driven)
+   and `Earned` (killing a blast). `PuzzleManager.RequestHint()` is retained as a
+   public API and is exercised by tests, not by the UI.
