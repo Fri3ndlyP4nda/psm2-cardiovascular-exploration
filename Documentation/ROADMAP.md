@@ -26,7 +26,6 @@ demonstrable — nothing is "half wired up and finished later".
 > | Outstanding | Blocked on |
 > |---|---|
 > | **The Phase 10 manual pass** | A person. TC-01–23 by hand, the 60 FPS measurement, MR-1/2/3, and the dashboard/audio judgements. See TESTING.md, "PHASE 10 MANUAL PASS" |
-> | **A live Supabase round-trip** | Anonymous sign-ins being enabled in the dashboard. The queue logic is fully tested against a scripted transport; nothing has yet written a row to the real server |
 >
 > "Phases complete" is not "project complete".
 
@@ -370,10 +369,17 @@ successful sync silently wiped the dashboard. A test asserts they stay separate.
 **Exit criterion met:** 250 automated checks — 120 self-check assertions plus 130
 NUnit cases (41 EditMode, 89 PlayMode) — all passing.
 
-**What is NOT proven:** no row has ever reached the live server. Anonymous sign-ins
-were still disabled in the dashboard when this was built, so every test runs against
-a scripted transport. The queue logic is verified; the live round-trip is
-**MANUAL REQUIRED** and recorded as such in TESTING.md.
+**Verified live on 2026-09-01**, through the game's own managers and HTTP stack:
+anonymous sign-in works, a row built by `SessionLogManager` reaches `session_logs` and
+reads back with every column intact, `failed_attempts` carries `LevelFailures`, the
+same install keeps its identity across launches, and a second anonymous user sees
+**none** of the first user's rows. `SupabaseLiveRoundTripTests` is `[Explicit]` so it
+does not make the deterministic suite depend on the network.
+
+**Operational limit worth planning around:** Supabase rate-limits anonymous sign-ins
+to **30 per hour per IP**. Every launch signs in, so a study day on a shared network
+can hit that ceiling; past it sign-in fails quietly and rows queue locally instead of
+uploading. Recorded in UAT.md.
 
 ## Phase 8 — Levels 2 and 3 (complete)
 

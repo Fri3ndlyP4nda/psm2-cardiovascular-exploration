@@ -28,6 +28,15 @@ paths. It does **not** exercise uGUI: no button is clicked, no chip is dragged, 
 250 automated checks run without a human — 120 self-check assertions plus 130 NUnit
 test cases (41 EditMode, 89 PlayMode). Run them before every commit.
 
+Two further tests are `[Explicit]`, excluded from that count and from the default run.
+`SupabaseLiveRoundTripTests` hits the real Supabase project, so including it would make
+a deterministic suite depend on the internet and would burn the anonymous sign-in rate
+limit (30/hour/IP) during ordinary development. Run it deliberately:
+
+```bash
+"C:\Program Files\Unity\Hub\Editor\6000.5.8f1\Editor\Unity.exe" -batchmode -projectPath "C:\Users\User\Downloads\PSM 2 Along" -runTests -testPlatform PlayMode -testFilter "SupabaseLiveRoundTripTests" -testResults live.xml
+```
+
 **None of them proves the game is playable by a person.** Not one clicks a button,
 renders a frame, or hears a sound. That distinction is the whole point of the table
 at the top of this document, and it is why the manual pass below is still owed.
@@ -65,6 +74,7 @@ which is why `PuzzleContentTests` reports 26 cases from 11 methods).
 | `HostileCombatTests` (PlayMode) | 9 | wrong answer spawns one tagged leukemic blast, kill delivers that question's hint, score penalty and clear-level bonus, respawn |
 | `StateAndSceneTests` (PlayMode) | 13 | bootstrapping, scene loading, state machine, panel visibility |
 | `FullLoopFunctionalTests` (PlayMode) | 2 | **a whole level played start to finish**: every openable station solved, tracker/objective/save/dashboard all agreeing at the end |
+| `SupabaseLiveRoundTripTests` (PlayMode) | 2 *(explicit)* | **the real project**: live anonymous sign-in, a row uploaded through `SessionLogManager` and read back, and identity reuse across launches. Excluded from the default run |
 | `SupabaseSyncTests` (PlayMode) | 12 | **offline queueing, reconnection, flush order, mid-flush disconnect**, SESSION_LOGS payload mapping, and the anon-key guard — all against a scripted transport, never the live server |
 | `DashboardAndAudioTests` (PlayMode) | 9 | **finishing or failing a level writes a history record**, the dashboard reads it back and survives an empty profile, and each gameplay event fires its audio cue |
 
@@ -95,7 +105,7 @@ which is why `PuzzleContentTests` reports 26 cases from 11 methods).
 | TC-21 A* pathfinding | **Yes** | Pass | No | Grid, routes, clearance, blockades, **and that all three levels are completable** |
 | TC-22 Obstacles in play | **Mostly** | Pass | Partly | Grid build, movement, no tunnelling, no stuck recoveries, tier speed. **Whether a chase feels threatening is MANUAL REQUIRED** |
 | TC-23 Performance / 60 FPS | **Partly** | Design: Pass | **MANUAL REQUIRED** | `PerformanceBudgetCheck` verifies the decisions credited for the target — no real-time shadows, shadow casting/receiving off, environment static-batched, ≤16 shared materials, 160-unit far clip. **It does not and cannot measure FPS**: batch mode has no renderer. The number itself needs the HUD counter on the target laptop |
-| TC-27 Supabase sync / offline queue | **Mostly** | Pass | **Partly** | Queueing, ordering, reconnect flush, mid-flush disconnect, rejected-row handling, payload columns and the FailedAttempts→LevelFailures mapping all automated against a fake transport. **A live round-trip to the real project is MANUAL REQUIRED and has never been performed** |
+| TC-27 Supabase sync / offline queue | **Yes** | Pass | No | Queueing, ordering, reconnect flush, mid-flush disconnect and rejected-row handling automated against a fake transport; **the live round-trip is automated too** (`SupabaseLiveRoundTripTests`, `[Explicit]`) — real sign-in, real upload through `SessionLogManager`, read back from the real table, verified 2026-09-01. Only *in-game observation* of the Console and HUD remains manual |
 | TC-25 Dashboard | **Mostly** | Pass | Partly | Record writing, aggregation, history ordering, cap and empty-profile handling automated. **Whether the panel is readable, and clicking Profile, are MANUAL REQUIRED** |
 | TC-26 Audio cues | **Mostly** | Pass | Partly | Every cue file generates, loads, and fires on the right event. **Whether any of it sounds acceptable is MANUAL REQUIRED — batch mode has no audio device** |
 | TC-24 Combat and earned hints | **Mostly** | Pass | Partly | Spawn-on-wrong-answer, puzzle tagging, kill→hint delivery, score penalty/bonus and respawn all automated. **Whether the blast reads as threatening rather than annoying is MANUAL REQUIRED** |
@@ -483,7 +493,10 @@ Open `Assets/Scenes/MainMenu.unity`, press Play.
 15i. **Audio:** are the six cues audible, correctly timed, and not annoying? They are procedurally generated placeholder tones, not designed sound — judge whether they are good enough to keep or should be replaced with real assets.
 15j. Does the master volume slider in Settings actually scale the cues?
 
-### D4. Supabase sync (new in Phase 7 — never verified live)
+### D4. Supabase sync — *automated as of 2026-09-01; only in-game observation remains*
+> 15k–15m and 15o are now covered by `SupabaseLiveRoundTripTests`, which signs in,
+> uploads and reads back against the real project. What is left is confirming the
+> *game* shows it: the Console line, and the queue behaving during real play.
 15k. Enable **Authentication → Sign In / Providers → Anonymous sign-ins** in the Supabase dashboard, then launch the game. The Console should log `[Supabase] Signed in anonymously as <uuid>`.
 15l. Finish a level, then check **Table Editor → session_logs** in Supabase. A row should appear with your level, accuracy and difficulty tier.
 15m. Confirm `failed_attempts` holds Blood-Count-zero count, **not** wrong answers — die once on purpose and check the number.
@@ -529,10 +542,10 @@ They are restated here because they are decisions pending, not just steps to per
 
 Stated explicitly so they are not mistaken for defects:
 
-1. **Supabase sync has never completed a live round-trip.** The client, auth and
-   offline queue are implemented and tested, but anonymous sign-ins were disabled in
-   the dashboard when this was built, so no row has ever reached the server. Until
-   that toggle is on and a live write is confirmed, treat all data as local-only.
+1. **Supabase anonymous sign-in is rate limited to 30 per hour per IP.** Every launch
+   signs in, so a study day on one shared network can hit the ceiling well before the
+   participant count suggests. Past it, sign-in fails *quietly* and rows queue locally
+   instead of uploading — the game keeps working, but sync stops. See UAT.md.
 2. **No human has played the game.** Simulated input now drives real movement,
    jumping, pausing and interaction, so the gap is narrower than it was — but
    nothing has exercised **uGUI**: no button has been clicked, no label dragged, no

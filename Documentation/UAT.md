@@ -122,14 +122,35 @@ Recorded honestly because they affect how the results can be read:
   tuning, not a failed study — report it as such.
 - **`HintSource.Requested` is unreachable.** The hint button was removed, so
   questionnaire item 9 is about *automatic* and *earned* hints only.
-- **Supabase sync has never completed a live round-trip.** The offline queue is
-  fully tested, but anonymous sign-ins were still disabled when it was built, so no
-  row has reached the server. Assume data is local until you have verified otherwise,
-  and collect `psm2_progress.json` by hand regardless.
+- **Supabase anonymous sign-in is rate limited to 30 per hour, per IP.** This is the
+  one that will bite a study day. Every launch signs in, so **thirty launches from the
+  same network in one hour is the ceiling** — and a lab or library where every machine
+  shares one outbound IP hits it far sooner than the participant count suggests.
+  Beyond the limit sign-in fails, the game keeps playing, and rows queue locally
+  rather than uploading, so the failure is quiet rather than obvious. Plan sessions
+  with that in mind, stagger them, or accept that some data arrives by file rather
+  than by sync. The local save is authoritative either way.
 - **Levels 2 and 3 have never been seen by anyone.** They pass their navigability
   checks, but their pacing is entirely unvalidated — see MR-1 and MR-3 in TESTING.md.
 - **Audio is placeholder tones.** Reactions to sound should not be read as reactions to
   designed audio.
+
+## 6b. Supabase sync status
+
+Verified live on 2026-09-01, through the game's own managers and HTTP stack rather
+than by hand:
+
+| Check | Result |
+|---|---|
+| Anonymous sign-in | Works; `is_anonymous: true` |
+| Row reaches `session_logs` | HTTP 201, read back with every column intact |
+| `failed_attempts` mapping | Carries `LevelFailures`, never `IncorrectAnswers` |
+| Identity across launches | Same user id after a refresh — data is not stranded |
+| RLS isolation | A second anonymous user sees **0** of the first user's rows |
+
+Sync is a convenience, not the system of record. `psm2_progress.json` on each machine
+holds everything, and the CSV export reads from that file, so **collect the save files
+regardless of whether sync succeeded**.
 
 ## 7. Before the first participant
 
@@ -138,3 +159,4 @@ Recorded honestly because they affect how the results can be read:
 - [ ] Confirm ≥ 60 FPS on the machine participants will use, and record its specs
 - [ ] Build a Windows executable and test it *as a build*, not in the editor
 - [ ] Pilot with one person, then fix before continuing
+- [ ] Check the anonymous sign-in rate limit against your session plan (30/hour/IP)

@@ -40,6 +40,7 @@ namespace Cardio.Backend
         public string LastStatus => lastStatus;
 
         private bool _flushing;
+        private bool _moreWorkArrived;
 
         private void Awake()
         {
@@ -157,7 +158,20 @@ namespace Cardio.Backend
         /// </summary>
         public IEnumerator FlushQueue()
         {
-            if (_flushing) yield break;
+            // A flush is already running. Rather than drop this request, mark
+            // that more work arrived so the running flush loops again before it
+            // finishes.
+            //
+            // Without this there is a real race: a row enqueued after the loop's
+            // last count check but before the guard clears would sit in the
+            // queue until some later trigger happened to fire. Found by the live
+            // round-trip test, where signing in starts a flush and the caller
+            // then enqueues into it.
+            if (_flushing)
+            {
+                _moreWorkArrived = true;
+                yield break;
+            }
 
             SupabaseManager backend = SupabaseManager.Instance;
             AuthenticationManager auth = AuthenticationManager.Instance;
@@ -178,11 +192,15 @@ namespace Cardio.Backend
             }
 
             _flushing = true;
+            _moreWorkArrived = false;
 
             try
             {
-                while (save.Progress.PendingSessionLogs.Count > 0)
+                while (save.Progress.PendingSessionLogs.Count > 0 || _moreWorkArrived)
                 {
+                    _moreWorkArrived = false;
+                    if (save.Progress.PendingSessionLogs.Count == 0) break;
+
                     string payload = save.Progress.PendingSessionLogs[0];
 
                     BackendResponse response = default;
@@ -192,8 +210,7 @@ namespace Cardio.Backend
 
                     if (response.Success)
                     {
-                        save.Progress.PendingSessionLogs.RemoveAt(0);
-                        save.SaveNow();
+                        DequeueIfStillThere(save, payload);
                         uploadedThisSession++;
                         RefreshQueueCount();
                         continue;
@@ -209,8 +226,7 @@ namespace Cardio.Backend
                     // queue forever, so drop it and say so rather than silently.
                     Debug.LogWarning($"[Supabase] Dropping a session log the server rejected " +
                                      $"({response.StatusCode}): {response.Body}");
-                    save.Progress.PendingSessionLogs.RemoveAt(0);
-                    save.SaveNow();
+                    DequeueIfStillThere(save, payload);
                     RefreshQueueCount();
                 }
 
@@ -222,6 +238,29 @@ namespace Cardio.Backend
             {
                 _flushing = false;
             }
+        }
+
+        /// <summary>
+        /// Removes a payload from the queue, but only if it is still the row we
+        /// uploaded.
+        ///
+        /// A blind RemoveAt(0) after the await is unsafe. The upload yields, and
+        /// during that yield the queue can be emptied or replaced entirely -
+        /// ResetProgress assigns a whole new PlayerProgress, so even the list
+        /// object may differ from the one the payload was read from. Removing by
+        /// index then either throws or silently discards somebody else's row.
+        ///
+        /// Found by FullLoopFunctionalTests, which resets progress while a flush
+        /// was in flight and produced an ArgumentOutOfRangeException.
+        /// </summary>
+        private static void DequeueIfStillThere(SaveManager save, string payload)
+        {
+            List<string> queue = save.Progress.PendingSessionLogs;
+
+            if (queue.Count > 0 && queue[0] == payload) queue.RemoveAt(0);
+            else queue.Remove(payload);   // no-op if it is already gone
+
+            save.SaveNow();
         }
 
         private void RefreshQueueCount()
