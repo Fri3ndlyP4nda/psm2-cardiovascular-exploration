@@ -335,6 +335,125 @@ namespace Cardio.Tests
                            $"the same plaque should hurt more at Hard (easy {easyDamage}, hard {hardDamage})");
         }
 
+        // ------------------------------------------------------------------
+        // Damage must stop while the player cannot act
+        //
+        // The first real playtest died to this: standing on the plaque and
+        // opening a puzzle kept the ticks landing at 14 a second on Hard, while
+        // the character was frozen and the panel covered the view. Roughly seven
+        // seconds of answering a question emptied a full Blood Count.
+        //
+        // These two tests are a pair and only mean something together. The first
+        // pins that a stationary player really is still being ticked - without it
+        // the second would pass just as happily if the hazard had stopped working
+        // altogether. The second pins the guard.
+        // ------------------------------------------------------------------
+
+        // NOTE ON TIMING. Neither test below waits for invulnerability to lapse,
+        // because that wait is a zero-width gap and cannot be caught reliably: the
+        // hazard ticks once a second and the invulnerability window is also one
+        // second, so the next hit lands on the same frame the previous window
+        // expires. Polling for "not invulnerable" therefore passes or fails on
+        // frame-timing luck - which is exactly what it did, passing this class in
+        // isolation and failing it in the full suite. Measuring across a window
+        // that spans several ticks does not care where the boundaries fall.
+
+        [UnityTest]
+        public IEnumerator StandingStillInThePlaque_KeepsTicking_WhilePlaying()
+        {
+            PlayerHealth health = TestLevel.Health;
+
+            yield return WalkIntoPlaque();
+
+            int settled = health.CurrentBloodCount;
+            yield return new WaitForSeconds(2.5f);
+
+            Assert.Less(health.CurrentBloodCount, settled,
+                        "a player standing still inside the plaque should keep taking ticks while playing");
+        }
+
+        [UnityTest]
+        public IEnumerator StandingStillInThePlaque_DealsNoDamage_WhileAPuzzleIsOpen()
+        {
+            PlayerHealth health = TestLevel.Health;
+
+            yield return WalkIntoPlaque();
+
+            GameManager.Instance.EnterPuzzleMode();
+            Assert.AreEqual(GameState.Puzzle, GameManager.Instance.State, "the test needs puzzle mode to be entered");
+
+            // Let the invulnerability window from the last pre-puzzle tick lapse
+            // inside puzzle mode, so the quiet that follows is the guard's doing
+            // and not invulnerability covering for it.
+            yield return new WaitForSeconds(1.3f);
+            Assert.IsFalse(health.IsInvulnerable, "the invulnerability window should have lapsed by now");
+
+            int frozen = health.CurrentBloodCount;
+            yield return new WaitForSeconds(2.5f);
+
+            Assert.AreEqual(frozen, health.CurrentBloodCount,
+                            "the plaque must not tick while the player is frozen behind a puzzle panel");
+
+            // ...and the guard must suspend the hazard, not disable it. Closing the
+            // panel puts the player back in danger on the same tile.
+            GameManager.Instance.ExitPuzzleMode();
+            yield return TestLevel.WaitUntil(() => health.CurrentBloodCount < frozen, 5f,
+                                             "the plaque to resume ticking once the panel closes");
+        }
+
+        [UnityTest]
+        public IEnumerator ObstacleContactDamage_IsSuspended_WhileAPuzzleIsOpen()
+        {
+            PlayerHealth health = TestLevel.Health;
+
+            var obstacle = Object.FindAnyObjectByType<Cardio.AI.ObstacleAgent>();
+            Assert.IsNotNull(obstacle, "the test level should contain at least one obstacle agent");
+
+            // Park it on top of the player so contact damage is unavoidable.
+            yield return TestLevel.PlacePlayer(OpenFloor);
+            yield return ParkAgainstPlayer(obstacle);
+
+            yield return TestLevel.WaitUntil(() => health.CurrentBloodCount < health.MaxBloodCount, 6f,
+                                             "the obstacle to land a contact hit while playing");
+
+            GameManager.Instance.EnterPuzzleMode();
+            yield return ParkAgainstPlayer(obstacle);
+
+            // Deliberately NOT waiting for invulnerability to lapse first: a
+            // touching obstacle re-hits the instant it does, so that wait never
+            // returns. Instead, let the 1s window pass inside puzzle mode and
+            // only then start measuring - so the quiet that follows is the guard
+            // doing its job, not invulnerability covering for it.
+            yield return new WaitForSeconds(1.3f);
+            Assert.IsFalse(health.IsInvulnerable, "the invulnerability window should have lapsed by now");
+
+            int frozen = health.CurrentBloodCount;
+            yield return new WaitForSeconds(2.5f);
+
+            Assert.AreEqual(frozen, health.CurrentBloodCount,
+                            "an obstacle already touching the player must not keep biting during a puzzle");
+
+            GameManager.Instance.ExitPuzzleMode();
+        }
+
+        /// <summary>
+        /// Places an agent within contact range of the player.
+        ///
+        /// The CharacterController has to be switched off around the move: it
+        /// caches its own position and would otherwise overwrite the change on
+        /// its next step.
+        /// </summary>
+        private static IEnumerator ParkAgainstPlayer(Component agent)
+        {
+            var controller = agent.GetComponent<CharacterController>();
+            if (controller != null) controller.enabled = false;
+
+            agent.transform.position = TestLevel.Player.transform.position + new Vector3(0.5f, 0f, 0f);
+
+            if (controller != null) controller.enabled = true;
+            yield return TestLevel.Frames(2);
+        }
+
         /// <summary>
         /// Walks the player into the aorta plaque and returns once damage lands.
         ///

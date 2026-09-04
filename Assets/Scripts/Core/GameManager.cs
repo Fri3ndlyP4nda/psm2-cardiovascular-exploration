@@ -49,6 +49,18 @@ namespace Cardio.Core
 
         public bool IsPaused => State == GameState.Paused;
 
+        /// <summary>
+        /// True only while the player is actually in control of the character.
+        ///
+        /// Every source that can hurt the player must check this. During
+        /// <see cref="GameState.Puzzle"/> the character is frozen behind a panel
+        /// that also covers the view, so damage taken there cannot be avoided,
+        /// reacted to, or even seen - it is a drain with no counterplay rather than
+        /// difficulty. <see cref="Cardio.AI.PathfindingAgent"/> has always frozen
+        /// agent movement on this condition; the damage sources now agree with it.
+        /// </summary>
+        public bool IsGameplayActive => State == GameState.Playing;
+
         private void Awake()
         {
             if (Instance != null && Instance != this)

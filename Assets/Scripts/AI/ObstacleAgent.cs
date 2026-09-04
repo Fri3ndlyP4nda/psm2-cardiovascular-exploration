@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using Cardio.Core;
 using Cardio.Player;
 using UnityEngine;
 
@@ -102,6 +103,12 @@ namespace Cardio.AI
 
         private void Update()
         {
+            // Same condition PathfindingAgent uses to freeze movement. Without it
+            // an agent already touching the player kept dealing contact damage
+            // while the player was frozen inside a puzzle panel - the agent looked
+            // stopped but was still biting.
+            if (GameManager.Instance != null && !GameManager.Instance.IsGameplayActive) return;
+
             if (_player == null)
             {
                 var player = FindAnyObjectByType<PlayerController>();

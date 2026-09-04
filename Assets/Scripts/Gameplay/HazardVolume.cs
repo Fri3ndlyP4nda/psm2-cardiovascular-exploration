@@ -1,3 +1,4 @@
+using Cardio.Core;
 using Cardio.DDA;
 using Cardio.Player;
 using UnityEngine;
@@ -47,9 +48,20 @@ namespace Cardio.Gameplay
             return Mathf.Max(1, Mathf.RoundToInt(damagePerTick * multiplier));
         }
 
+        /// <summary>
+        /// Hazards only bite while the player can actually do something about it.
+        ///
+        /// Found in the first playtest: standing on a plaque and opening a puzzle
+        /// kept the ticks coming at 14 a second on Hard, while the character was
+        /// frozen and the panel covered the view. Roughly seven seconds of answering
+        /// a question emptied a full Blood Count with no way to react.
+        /// </summary>
+        private static bool GameplayActive =>
+            GameManager.Instance == null || GameManager.Instance.IsGameplayActive;
+
         private void OnTriggerEnter(Collider other)
         {
-            if (!damageOnEnter) return;
+            if (!damageOnEnter || !GameplayActive) return;
 
             PlayerHealth health = other.GetComponentInParent<PlayerHealth>();
             if (health == null) return;
@@ -60,6 +72,7 @@ namespace Cardio.Gameplay
 
         private void OnTriggerStay(Collider other)
         {
+            if (!GameplayActive) return;
             if (Time.time < _nextTickTime) return;
 
             PlayerHealth health = other.GetComponentInParent<PlayerHealth>();
