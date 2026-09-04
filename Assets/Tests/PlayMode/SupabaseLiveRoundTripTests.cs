@@ -81,6 +81,8 @@ namespace Cardio.Tests
 
             var record = new SessionRecord
             {
+                // Second precision, so this row is distinguishable from the
+                // minute-precision stamps gameplay writes.
                 DateUtc = System.DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm:ss"),
                 Level = 2,
                 HintsUsed = 5,
@@ -112,9 +114,17 @@ namespace Cardio.Tests
                            SessionLogManager.Instance.LastStatus);
 
             // ---- Read it back, so "it uploaded" is not taken on trust ----
+            // Filtered to the exact row this test wrote, not "the newest row".
+            //
+            // Ordering by session_date and taking the top row assumes nothing else
+            // has written since - which stopped being true the moment anything else
+            // could upload under the same identity. It also cannot break ties:
+            // gameplay stamps session_date to the minute, so several rows routinely
+            // share a value and Postgres is free to return any of them.
+            string stamp = System.Uri.EscapeDataString(record.DateUtc);
             string url = $"{backend.Config.RestUrl}/session_logs" +
                          $"?select=current_level,hints_used,failed_attempts,final_difficulty_tier" +
-                         $"&order=session_date.desc&limit=1";
+                         $"&session_date=eq.{stamp}&limit=1";
 
             BackendResponse read = default;
             yield return backend.Send("GET", url, null, backend.RestHeaders(auth.AccessToken), r => read = r);

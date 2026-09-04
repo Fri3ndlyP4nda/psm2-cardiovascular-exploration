@@ -28,9 +28,29 @@ paths. It does **not** exercise uGUI: no button is clicked, no chip is dragged, 
 263 automated checks run without a human — 120 self-check assertions plus 143 NUnit
 test cases (43 EditMode, 100 PlayMode). Run them before every commit.
 
-**One of them currently fails**, and it is a real failure rather than a flake — see
-"Known failing test" below. Everything else passes, so the honest count is
-**262 of 263**: 120/120 self-checks, 43/43 EditMode, 99/100 PlayMode.
+**263 of 263 pass**: 120/120 self-checks, 43/43 EditMode, 100/100 PlayMode, plus the
+2 `[Explicit]` live tests correctly skipped.
+
+### The suite does not talk to the live backend
+
+`SupabaseManager.Awake` installs the real `UnityWebRequestTransport` and loads the
+shipped, live config from `Resources`. Left alone, that meant **every PlayMode class
+ran against the production Supabase project**: any test that finished a level uploaded
+a row into the real `session_logs` table, and every run spent anonymous sign-ins from
+the 30-per-hour-per-IP allowance that section 6c of UAT.md calls the biggest
+operational risk of a study day.
+
+`TestLevel.Load` now installs an offline transport and a config with sync switched
+off. Suites that need a backend replace both afterwards — `SupabaseSyncTests` with its
+scripted transport, `SupabaseLiveRoundTripTests` with the real one.
+
+**One residual, stated rather than glossed:** `AuthenticationManager.Start` runs when
+`GameBootstrap` creates the persistent managers, before any test's `SetUp` can swap
+the config, so a suite run still performs **one** real anonymous sign-in per Unity
+process. It writes no rows. Closing that last one would mean disabling the backend
+from the test assembly at `RuntimeInitializeOnLoadMethod` time, which would also
+disable it for a developer pressing Play in the Editor — a worse trade than one
+request per run.
 
 Two further tests are `[Explicit]`, excluded from that count and from the default run.
 `SupabaseLiveRoundTripTests` hits the real Supabase project, so including it would make
@@ -41,35 +61,26 @@ limit (30/hour/IP) during ordinary development. Run it deliberately:
 "C:\Program Files\Unity\Hub\Editor\6000.5.8f1\Editor\Unity.exe" -batchmode -projectPath "C:\Users\User\Downloads\PSM 2 Along" -runTests -testPlatform PlayMode -testFilter "SupabaseLiveRoundTripTests" -testResults live.xml
 ```
 
-### Known failing test
+### The failure that used to be here, and what it actually was
 
-`PlayerAndHazardTests.Movement_IsRelativeToTheCamera_NotWorldAxes` fails in the full
-PlayMode run and passes when its class runs alone. It is **not** a regression: the same
-failure reproduces with every change in this branch stashed, so it predates them and
-the earlier claim of "250, all passing" was wrong — the suite was presumably only ever
-observed green a class at a time.
+Earlier revisions of this document recorded
+`PlayerAndHazardTests.Movement_IsRelativeToTheCamera_NotWorldAxes` as a real,
+unexplained failure: it failed in the full run and passed when its class ran alone.
+**It now passes, and the cause turned out to be the backend isolation above.**
 
-What is established about it:
+Every test class was performing live HTTP — sign-in, retries with backoff, and row
+uploads — on the main thread. That stole frame time from whatever ran next, so a test
+measuring how far the player walks in 0.6 seconds measured a character that had barely
+moved. It explains every symptom that had been recorded as puzzling: why the test only
+failed when another class had run first, why the player moved 0.11–0.25 units instead
+of ~1.9, and why making `TestLevel.PlacePlayer` wait *longer* made things worse rather
+than better — a longer setup simply overlapped more network activity.
 
-* The player travels 0.11–0.25 units in 0.6s where the test expects more than 0.4.
-  At `moveSpeed` 5 and `acceleration` 12 a clear run should cover roughly 1.9 units.
-* It fails whenever *any* other test class runs first — not one particular class.
-* A temporary diagnostic confirmed the things that are **not** wrong: exactly one
-  `PlayerController` and one `Camera` in the scene, `Time.timeScale` 1, state
-  `Playing`, and the camera's forward vector exactly `(-1, 0, 0)` as the test intends.
-* That diagnostic also showed the player falling 1.13 units during the measurement,
-  but waiting for `IsGrounded` first does **not** fix the failure, so the fall is a
-  symptom rather than the cause.
-* Making `TestLevel.PlacePlayer` wait for the landing made things *worse*, taking two
-  further movement tests down with it — which points at something that gets worse the
-  longer setup takes. The leading remaining hypothesis is that obstacle agents, which
-  path toward the player as soon as a level loads, physically pin the character; more
-  setup time means more time for them to arrive.
-
-That hypothesis is **unverified**. It is recorded here rather than acted on, because
-the fix differs completely depending on whether the cause is the test or the agents
-crowding the player — and the second would be a genuine gameplay problem worth
-knowing about.
+Two hypotheses recorded here previously were wrong and are worth naming as such: the
+player falling during the measurement was a symptom, not the cause; and obstacle
+agents pinning the player, offered as the leading explanation, was never the problem.
+Both were labelled unverified at the time, and neither survived contact with the
+actual fix.
 
 **None of them proves the game is playable by a person.** Not one clicks a button,
 renders a frame, or hears a sound. That distinction is the whole point of the table
