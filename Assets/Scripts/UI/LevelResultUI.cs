@@ -93,7 +93,40 @@ namespace Cardio.UI
             if (s == null || failedSummaryLabel == null) return;
 
             failedSummaryLabel.text =
-                "Blood Count reached zero.\n\n" + BuildSummary(s);
+                "Blood Count reached zero.\n" + Diagnose(s) + "\n" + BuildSummary(s);
+        }
+
+        /// <summary>
+        /// One line naming the thing that most likely killed this attempt.
+        ///
+        /// The failure screen previously stated the outcome and then a column of
+        /// numbers, which tells a player what happened but not what to do about it.
+        /// Every branch here is drawn from the session's own measurements rather
+        /// than a generic tip, so it is honest about this attempt specifically.
+        /// </summary>
+        private static string Diagnose(SessionData s)
+        {
+            if (s.PuzzlesAttempted <= 0)
+            {
+                return "\nYou did not reach a puzzle station. The objective board, top right, " +
+                       "lists what to find - and standing in a hazard drains Blood Count every second.\n";
+            }
+
+            if (s.LevelFailures > 1)
+            {
+                return "\nMost of that damage came from hazards rather than one bad moment. " +
+                       "Blood Count does not refill during a level, so walking around the " +
+                       "plaque costs less than walking through it.\n";
+            }
+
+            if (s.Accuracy01 < 0.5f)
+            {
+                return "\nWrong answers spawn malignant cells, so a run of them makes the level " +
+                       "more dangerous as well as slower. Killing one reveals that question's hint.\n";
+            }
+
+            return "\nYour answers were solid - it was the journey between stations that cost you. " +
+                   "Hazards tick once a second while you stand in them.\n";
         }
 
         private static string BuildSummary(SessionData s)

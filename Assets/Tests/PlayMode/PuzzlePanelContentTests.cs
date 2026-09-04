@@ -1,4 +1,5 @@
 using System.Collections;
+using System.Collections.Generic;
 using Cardio.Core;
 using Cardio.Data;
 using Cardio.DDA;
@@ -56,6 +57,8 @@ namespace Cardio.Tests
             Assert.IsTrue(Section("OptionsSection").activeInHierarchy, "the options section should be visible");
             Assert.IsFalse(Section("SequenceSection").activeInHierarchy, "the sequence section should be hidden");
 
+            var shown = new List<string>();
+
             for (int i = 0; i < 4; i++)
             {
                 GameObject button = TestLevel.Find($"Btn_Option{i}");
@@ -69,13 +72,62 @@ namespace Cardio.Tests
 
                 var label = button.GetComponentInChildren<TMP_Text>(true);
                 Assert.IsNotNull(label, $"Btn_Option{i} should have a text label");
-                Assert.AreEqual(puzzle.Options[i], label.text, $"Btn_Option{i} shows the wrong option text");
                 Assert.IsNotEmpty(label.text.Trim(), $"Btn_Option{i} label is blank");
+
+                // Not AreEqual(puzzle.Options[i], ...) any more: the panel shuffles
+                // the display order deliberately, so the buttons must carry the same
+                // *set* of options rather than the same sequence. Asserting the set
+                // is the stronger check anyway - it still catches a missing, blank
+                // or duplicated option.
+                CollectionAssert.Contains(puzzle.Options, label.text,
+                                          $"Btn_Option{i} shows text that is not one of this puzzle's options");
+                shown.Add(label.text);
 
                 var rect = (RectTransform)button.transform;
                 Assert.Greater(rect.rect.width, 50f, $"Btn_Option{i} is too narrow to click");
                 Assert.Greater(rect.rect.height, 10f, $"Btn_Option{i} has collapsed to zero height");
             }
+
+            CollectionAssert.AreEquivalent(puzzle.Options, shown,
+                                           "the visible buttons should show every option exactly once");
+        }
+
+        [UnityTest]
+        public IEnumerator MultipleChoice_ShufflesTheOptions_SoTheFirstButtonIsNotAlwaysCorrect()
+        {
+            // Every question in the bank is authored with CorrectOptionIndex 0. If
+            // the panel rendered them in authored order, the first button would
+            // always be the answer and no one would need to read the question -
+            // which would make accuracy, and therefore the DDA and the study's
+            // headline metric, meaningless.
+            var positionsSeen = new HashSet<int>();
+
+            for (int attempt = 0; attempt < 30 && positionsSeen.Count < 2; attempt++)
+            {
+                PuzzleData puzzle = Open(PuzzleType.MultipleChoice);
+                yield return TestLevel.Frames(2);
+
+                var panel = Object.FindAnyObjectByType<Cardio.UI.PuzzleUI>(FindObjectsInactive.Include);
+                Assert.IsNotNull(panel, "the puzzle panel should exist in the scene");
+
+                IReadOnlyList<int> order = panel.OptionOrder;
+                Assert.AreEqual(puzzle.Options.Length, order.Count,
+                                "the display order should cover every option");
+                CollectionAssert.AllItemsAreUnique(order, "an option must not be shown twice");
+
+                int position = -1;
+                for (int i = 0; i < order.Count; i++)
+                {
+                    if (order[i] == puzzle.CorrectOptionIndex) { position = i; break; }
+                }
+                positionsSeen.Add(position);
+
+                PuzzleManager.Instance.AbandonPuzzle();
+                yield return TestLevel.Frames(2);
+            }
+
+            Assert.Greater(positionsSeen.Count, 1,
+                           "over 30 openings the correct answer never moved position - it is not being shuffled");
         }
 
         // ------------------------------------------------------------------

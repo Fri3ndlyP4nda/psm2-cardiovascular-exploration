@@ -61,6 +61,9 @@ namespace Cardio.UI
         private AnatomyStructureTag _hovered;
 
         // Sequence state
+        /// <summary>Display order of the option buttons; index i shows option _optionOrder[i].</summary>
+        private readonly List<int> _optionOrder = new List<int>();
+
         private readonly List<string> _sequenceChosen = new List<string>();
         private readonly List<string> _sequencePool = new List<string>();
 
@@ -213,23 +216,49 @@ namespace Cardio.UI
             }
         }
 
+        /// <summary>
+        /// Fills the option buttons, in a shuffled order.
+        ///
+        /// Every multiple-choice question in the bank has CorrectOptionIndex 0, and
+        /// the options used to be rendered in authored order - so the first button
+        /// was always the right one, and all 22 of them could be answered without
+        /// reading the question. That makes the accuracy figure the DDA adapts on,
+        /// and the one the study reports, close to meaningless.
+        ///
+        /// The shuffle lives here, in the view, rather than in the data: PuzzleData
+        /// keeps its authored order, IsCorrectOption keeps comparing against
+        /// CorrectOptionIndex, and the answer key in WALKTHROUGH.md stays true. Only
+        /// the mapping from button to option index moves, and OnOptionClicked
+        /// translates back through it.
+        /// </summary>
         private void ConfigureOptions(PuzzleData puzzle)
         {
             if (optionButtons == null) return;
+
+            int optionCount = puzzle.Options != null ? puzzle.Options.Length : 0;
+
+            _optionOrder.Clear();
+            for (int i = 0; i < optionCount; i++) _optionOrder.Add(i);
+
+            for (int i = _optionOrder.Count - 1; i > 0; i--)
+            {
+                int j = Random.Range(0, i + 1);
+                (_optionOrder[i], _optionOrder[j]) = (_optionOrder[j], _optionOrder[i]);
+            }
 
             for (int i = 0; i < optionButtons.Length; i++)
             {
                 Button button = optionButtons[i];
                 if (button == null) continue;
 
-                bool used = puzzle.Options != null && i < puzzle.Options.Length;
+                bool used = i < _optionOrder.Count;
                 button.gameObject.SetActive(used);
                 button.interactable = true;
 
                 if (!used) continue;
 
                 var text = button.GetComponentInChildren<TMP_Text>();
-                if (text != null) text.text = puzzle.Options[i];
+                if (text != null) text.text = puzzle.Options[_optionOrder[i]];
             }
         }
 
@@ -304,8 +333,14 @@ namespace Cardio.UI
         private void OnOptionClicked(int index)
         {
             if (!IsOpen || _isResolved) return;
-            PuzzleManager.Instance?.SubmitOption(index);
+
+            // The button's position is not the option's index - see ConfigureOptions.
+            int authored = index >= 0 && index < _optionOrder.Count ? _optionOrder[index] : index;
+            PuzzleManager.Instance?.SubmitOption(authored);
         }
+
+        /// <summary>Which authored option each option button is currently showing.</summary>
+        public System.Collections.Generic.IReadOnlyList<int> OptionOrder => _optionOrder;
 
         /// <summary>
         /// Close button. Abandoning is not recorded as a failure - a player who

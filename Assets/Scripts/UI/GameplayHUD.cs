@@ -53,7 +53,25 @@ namespace Cardio.UI
         [SerializeField] private TMP_Text fpsLabel;
         [SerializeField] private bool showFps = true;
 
+        /// <summary>
+        /// What the player is told when a level begins.
+        ///
+        /// Nothing in the game said this anywhere. The only guidance that existed
+        /// was the "[E] Examine" prompt, which only appears once you are already
+        /// standing on a station - and you cannot reach one without knowing how to
+        /// walk. A study participant handed a laptop for forty minutes should not
+        /// have to guess the controls.
+        /// </summary>
+        private const string ControlsReminder =
+            "WASD move   \u00B7   Mouse look   \u00B7   Space jump   \u00B7   E examine   \u00B7   Esc pause";
+
+        [Header("First-run guidance")]
+        [Tooltip("Seconds the control reminder stays on screen when a level begins.")]
+        [SerializeField, Range(0f, 30f)] private float controlsReminderSeconds = 8f;
+
         private PlayerHealth _health;
+        private LevelId _controlsShownForLevel = LevelId.None;
+        private float _controlsHideAtTime = -1f;
         private float _fpsAccumulator;
         private int _fpsFrames;
         private float _fpsTimer;
@@ -104,6 +122,20 @@ namespace Cardio.UI
         private void Update()
         {
             if (showFps && fpsLabel != null) UpdateFpsCounter();
+            ExpireControlsReminder();
+        }
+
+        /// <summary>
+        /// Takes the reminder down once it has been read - but only if it is still
+        /// the thing on screen. A real hint arriving in the meantime wins, and
+        /// clearing blindly here would wipe it.
+        /// </summary>
+        private void ExpireControlsReminder()
+        {
+            if (_controlsHideAtTime < 0f || Time.unscaledTime < _controlsHideAtTime) return;
+
+            _controlsHideAtTime = -1f;
+            if (hintLabel != null && hintLabel.text == ControlsReminder) ClearHint();
         }
 
         // ------------------------------------------------------------------
@@ -150,6 +182,19 @@ namespace Cardio.UI
         private void OnSessionChanged(SessionData session)
         {
             if (session == null) return;
+
+            // Keyed off the level changing rather than the state reaching Playing,
+            // because Playing is re-entered every time a puzzle panel closes and
+            // the reminder would come back on every question.
+            if (session.CurrentLevel != LevelId.None && session.CurrentLevel != _controlsShownForLevel)
+            {
+                _controlsShownForLevel = session.CurrentLevel;
+                if (controlsReminderSeconds > 0f)
+                {
+                    ShowHint(ControlsReminder);
+                    _controlsHideAtTime = Time.unscaledTime + controlsReminderSeconds;
+                }
+            }
 
             if (levelLabel != null) levelLabel.text = GameConstants.DisplayNameFor(session.CurrentLevel);
             if (difficultyLabel != null) difficultyLabel.text = $"Difficulty: {session.CurrentDifficulty}";

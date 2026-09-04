@@ -47,6 +47,20 @@ namespace Cardio.Gameplay
         private bool _highlighted;
         private bool _hovered;
 
+        /// <summary>
+        /// The finished label string, built once.
+        ///
+        /// This used to be composed and assigned every frame the player stood
+        /// near a marker. Assigning TMP_Text.text is not a cheap store - it dirties
+        /// the mesh and forces a full text layout and rebuild - so a handful of
+        /// markers in range was re-laying out text every frame for content that
+        /// never changes, plus a string allocation each time for the GC.
+        /// </summary>
+        private string _composedLabel;
+
+        /// <summary>Throttles the scene-wide search for the player. See Update.</summary>
+        private float _nextPlayerSearchTime;
+
         public string StructureId => structureId;
         public string DisplayName => displayName;
         public string Description => description;
@@ -54,7 +68,11 @@ namespace Cardio.Gameplay
         private void Awake()
         {
             _block = new MaterialPropertyBlock();
-            if (worldLabel != null) worldLabel.text = displayName;
+            _composedLabel = string.IsNullOrWhiteSpace(description)
+                ? displayName
+                : $"{displayName}\n<size=60%>{description}</size>";
+
+            if (worldLabel != null) worldLabel.text = _composedLabel;
         }
 
         private void Update()
@@ -63,6 +81,13 @@ namespace Cardio.Gameplay
 
             if (_player == null)
             {
+                // Every marker in the level runs this, so an unthrottled search
+                // means one whole-scene scan per marker per frame for as long as
+                // the player is missing - which is exactly the moment the level is
+                // still loading and has least to spare.
+                if (Time.unscaledTime < _nextPlayerSearchTime) return;
+                _nextPlayerSearchTime = Time.unscaledTime + 0.5f;
+
                 var pc = FindAnyObjectByType<PlayerController>();
                 if (pc == null) return;
                 _player = pc.transform;
@@ -74,7 +99,8 @@ namespace Cardio.Gameplay
             if (worldLabel.gameObject.activeSelf != near) worldLabel.gameObject.SetActive(near);
             if (!near) return;
 
-            worldLabel.text = $"{displayName}\n<size=60%>{description}</size>";
+            // The text is set in Awake and never changes. Re-assigning it here is
+            // what a per-frame text rebuild looks like.
 
             if (billboard)
             {
