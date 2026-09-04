@@ -112,6 +112,18 @@ namespace Cardio.Core
         /// </summary>
         public const int MaxSessionHistory = 20;
 
+        /// <summary>
+        /// How many unsent session rows the offline queue will hold.
+        ///
+        /// Unbounded, this grows forever on any machine that never reaches the
+        /// backend - and the whole file is rewritten on every enqueue, so the cost
+        /// of each level completion climbs with the number that came before it.
+        /// Two hundred attempts is far more than a study participant will produce;
+        /// past that the oldest are dropped, because the newest data is the data
+        /// still worth having.
+        /// </summary>
+        public const int MaxPendingSessionLogs = 200;
+
         [Header("Debug")]
         [Tooltip("Writes the save path to the Console on start so it is easy to find during testing.")]
         [SerializeField] private bool logSavePath = true;
@@ -153,6 +165,10 @@ namespace Cardio.Core
                         Progress.PendingSessionLogs ??= new List<string>();
                         Progress.SupabaseUserId ??= string.Empty;
                         Progress.SupabaseRefreshToken ??= string.Empty;
+                        // SessionHistory was missed when Phase 9 added it. A save file
+                        // written before that phase has no such key, and the first level
+                        // completion afterwards would append to a null list.
+                        Progress.SessionHistory ??= new List<SessionRecord>();
                         return;
                     }
                 }
@@ -166,15 +182,33 @@ namespace Cardio.Core
             Progress = new PlayerProgress();
         }
 
+        /// <summary>
+        /// Persists progress, writing to a temporary file and swapping it into
+        /// place.
+        ///
+        /// Writing over the live file directly truncates it first, so a process
+        /// killed mid-write leaves a half-written file that will not parse - and
+        /// this file carries the Supabase identity and the unsent upload queue,
+        /// not just unlocks. Losing it silently mints a new anonymous user and
+        /// orphans everything already uploaded. A rename is atomic on NTFS, so the
+        /// old file survives intact until the new one is complete.
+        /// </summary>
         public void SaveNow()
         {
+            string path = SavePath;
+            string temp = path + ".tmp";
+
             try
             {
-                File.WriteAllText(SavePath, JsonUtility.ToJson(Progress, true));
+                File.WriteAllText(temp, JsonUtility.ToJson(Progress, true));
+
+                if (File.Exists(path)) File.Replace(temp, path, null);
+                else File.Move(temp, path);
             }
             catch (Exception e)
             {
                 Debug.LogError($"[SaveManager] Failed to write save file: {e.Message}");
+                try { if (File.Exists(temp)) File.Delete(temp); } catch { /* nothing useful to do */ }
             }
         }
 

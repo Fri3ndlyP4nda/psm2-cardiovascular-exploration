@@ -143,6 +143,18 @@ namespace Cardio.Backend
             if (save == null) return;
 
             save.Progress.PendingSessionLogs.Add(payload);
+
+            // A machine that never reaches the backend would otherwise queue
+            // forever, and the whole save file is rewritten on every enqueue, so
+            // each level completion would cost a little more than the last.
+            int excess = save.Progress.PendingSessionLogs.Count - SaveManager.MaxPendingSessionLogs;
+            if (excess > 0)
+            {
+                save.Progress.PendingSessionLogs.RemoveRange(0, excess);
+                Debug.LogWarning($"[Supabase] Upload queue hit its {SaveManager.MaxPendingSessionLogs}-row cap; " +
+                                 $"dropped the {excess} oldest.");
+            }
+
             save.SaveNow();
             RefreshQueueCount();
         }
@@ -193,6 +205,7 @@ namespace Cardio.Backend
 
             _flushing = true;
             _moreWorkArrived = false;
+            bool refreshedThisFlush = false;
 
             try
             {
@@ -203,9 +216,14 @@ namespace Cardio.Backend
 
                     string payload = save.Progress.PendingSessionLogs[0];
 
+                    // Stamp the identity at send time, not at enqueue time. A row
+                    // queued before sign-in completed carries an empty user_id, and
+                    // RLS will refuse it forever however many times it is retried.
+                    string outgoing = StampUserId(payload, auth.UserId);
+
                     BackendResponse response = default;
                     yield return backend.Send("POST", $"{backend.Config.RestUrl}/session_logs",
-                                              payload, backend.RestHeaders(auth.AccessToken),
+                                              outgoing, backend.RestHeaders(auth.AccessToken),
                                               r => response = r);
 
                     if (response.Success)
@@ -222,8 +240,33 @@ namespace Cardio.Backend
                         yield break;
                     }
 
-                    // Rejected on its own merits. Keeping it would block the
-                    // queue forever, so drop it and say so rather than silently.
+                    // An expired access token looks like a rejection but is not one.
+                    // Sessions here can outlast the JWT, and every level finished
+                    // after that point used to be deleted on the spot.
+                    if (response.StatusCode == 401 && !refreshedThisFlush)
+                    {
+                        refreshedThisFlush = true;
+                        Debug.Log("[Supabase] Access token rejected; refreshing and retrying the row.");
+                        yield return auth.SignIn();
+                        if (auth.IsSignedIn) continue;
+                    }
+
+                    // The server is busy, broken, or rate-limiting us. The row is
+                    // fine; it is the moment that is wrong. Keep it and stop.
+                    //
+                    // This is the difference between a cohort's data surviving a
+                    // load spike and being silently thrown away: 429 and 5xx used to
+                    // fall into the same branch as a malformed row.
+                    if (IsWorthRetrying(response.StatusCode))
+                    {
+                        SetStatus($"server busy ({response.StatusCode}) - " +
+                                  $"{save.Progress.PendingSessionLogs.Count} queued for later");
+                        yield break;
+                    }
+
+                    // Genuinely rejected on its own merits - a malformed or
+                    // duplicate row. Keeping it would block everything behind it,
+                    // so drop it, and say so rather than silently.
                     Debug.LogWarning($"[Supabase] Dropping a session log the server rejected " +
                                      $"({response.StatusCode}): {response.Body}");
                     DequeueIfStillThere(save, payload);
@@ -253,6 +296,47 @@ namespace Cardio.Backend
         /// Found by FullLoopFunctionalTests, which resets progress while a flush
         /// was in flight and produced an ArgumentOutOfRangeException.
         /// </summary>
+        /// <summary>
+        /// Which HTTP statuses mean "ask again later" rather than "this row is bad".
+        ///
+        ///   401 - our access token expired mid-session.
+        ///   408 / 425 / 429 - the server is asking us to wait.
+        ///   5xx - the server broke; the row had nothing to do with it.
+        ///
+        /// Everything else (400, 403, 409, 422) is a statement about the row
+        /// itself, and retrying it would block the queue forever.
+        /// </summary>
+        private static bool IsWorthRetrying(long status)
+        {
+            return status == 401 || status == 408 || status == 425 || status == 429 || status >= 500;
+        }
+
+        /// <summary>
+        /// Replaces the user_id in a queued payload with the one we are signed in
+        /// as now.
+        ///
+        /// <see cref="BuildPayload"/> always writes user_id first and always quotes
+        /// it, so this is a rewrite of a field this class itself produced rather
+        /// than general-purpose JSON editing.
+        /// </summary>
+        public static string StampUserId(string payload, string userId)
+        {
+            if (string.IsNullOrEmpty(payload) || string.IsNullOrEmpty(userId)) return payload;
+
+            const string key = "\"user_id\":\"";
+            int start = payload.IndexOf(key, StringComparison.Ordinal);
+            if (start < 0) return payload;
+
+            int valueStart = start + key.Length;
+            int valueEnd = payload.IndexOf('"', valueStart);
+            if (valueEnd < 0) return payload;
+
+            string existing = payload.Substring(valueStart, valueEnd - valueStart);
+            if (existing == userId) return payload;
+
+            return payload.Substring(0, valueStart) + userId + payload.Substring(valueEnd);
+        }
+
         private static void DequeueIfStillThere(SaveManager save, string payload)
         {
             List<string> queue = save.Progress.PendingSessionLogs;

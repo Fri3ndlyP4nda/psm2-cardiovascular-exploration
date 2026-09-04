@@ -33,12 +33,30 @@ namespace Cardio.Backend
     {
         public static AuthenticationManager Instance { get; private set; }
 
+        [Header("Retry")]
+        [Tooltip("First sign-in is delayed by a random slice of this, to break up the burst " +
+                 "when a room full of machines launches the build at the same moment.")]
+        [SerializeField, Range(0f, 30f)] private float initialStaggerSeconds = 4f;
+
+        [Tooltip("How many times sign-in is retried before giving up for this launch.")]
+        [SerializeField, Range(1, 10)] private int maxSignInAttempts = 6;
+
+        [SerializeField, Range(1f, 30f)] private float baseRetrySeconds = 3f;
+        [SerializeField, Range(10f, 600f)] private float maxRetrySeconds = 120f;
+
         [Header("Live state (read-only)")]
         [SerializeField] private bool signedIn;
         [SerializeField] private string userId = "";
         [SerializeField] private string lastError = "";
+        [SerializeField] private int signInAttempts;
 
         private string _accessToken = "";
+
+        /// <summary>True when the last attempt failed to reach Supabase at all.</summary>
+        private bool _lastAttemptWasTransportFailure;
+
+        /// <summary>True when the failure is a project setting no retry can fix.</summary>
+        private bool _configurationIsBroken;
 
         /// <summary>Raised whenever sign-in state changes, so the queue can flush on reconnect.</summary>
         public event Action<bool> SignedInChanged;
@@ -63,8 +81,53 @@ namespace Cardio.Backend
         {
             if (SupabaseManager.Instance != null && SupabaseManager.Instance.IsEnabled)
             {
-                StartCoroutine(SignIn());
+                StartCoroutine(SignInWithRetry());
             }
+        }
+
+        /// <summary>
+        /// Signs in, and keeps trying if it does not work the first time.
+        ///
+        /// The single attempt this replaced was the difference between a study day
+        /// working and quietly not working. Supabase caps anonymous sign-ins at 30
+        /// per hour per IP, and a campus network puts every machine behind one
+        /// address, so a cohort larger than thirty guarantees rejections. With one
+        /// attempt those players simply never sync for the whole session, and
+        /// nothing on screen says so.
+        ///
+        /// Two things make retrying safe rather than a denial-of-service on our own
+        /// project: the delay doubles each time, and it is jittered - so machines
+        /// that failed together do not come back together.
+        /// </summary>
+        public IEnumerator SignInWithRetry()
+        {
+            // Everyone launches on the invigilator's word. Spread the first
+            // attempt out before it becomes a synchronised burst.
+            yield return new WaitForSecondsRealtime(UnityEngine.Random.Range(0f, initialStaggerSeconds));
+
+            for (int attempt = 0; attempt < maxSignInAttempts; attempt++)
+            {
+                signInAttempts = attempt + 1;
+                yield return SignIn();
+
+                if (IsSignedIn) yield break;
+
+                // Anonymous sign-ins being switched off in the dashboard is not
+                // something waiting will fix.
+                if (_configurationIsBroken) yield break;
+
+                if (attempt + 1 >= maxSignInAttempts) break;
+
+                float backoff = Mathf.Min(baseRetrySeconds * Mathf.Pow(2f, attempt), maxRetrySeconds);
+                float jittered = backoff * UnityEngine.Random.Range(0.5f, 1.5f);
+
+                Debug.Log($"[Supabase] Sign-in attempt {attempt + 1} failed ({lastError}); " +
+                          $"retrying in {jittered:0.0}s.");
+                yield return new WaitForSecondsRealtime(jittered);
+            }
+
+            Debug.LogWarning($"[Supabase] Giving up on sign-in after {signInAttempts} attempts " +
+                             $"({lastError}). Play continues; rows stay queued locally.");
         }
 
         /// <summary>
@@ -91,10 +154,19 @@ namespace Cardio.Backend
                 yield return Refresh(storedRefresh);
                 if (IsSignedIn) yield break;
 
-                // A refresh can fail because the token expired or the project
-                // was reset. Falling through to a fresh anonymous sign-in is
-                // better than leaving the player unable to sync at all.
-                Debug.Log("[Supabase] Stored session could not be refreshed; creating a new anonymous user.");
+                // Only a server that actually answered and rejected the token
+                // justifies minting a new identity. If we simply could not reach
+                // Supabase we have learned nothing about the stored session, and
+                // replacing it would orphan every row already uploaded under it -
+                // turning one flaky launch into a participant who reads as two
+                // different people in the data.
+                if (_lastAttemptWasTransportFailure)
+                {
+                    SetSignedIn(false, "offline - keeping the stored identity");
+                    yield break;
+                }
+
+                Debug.Log("[Supabase] Stored session was rejected by the server; creating a new anonymous user.");
             }
 
             yield return SignUpAnonymously();
@@ -112,12 +184,15 @@ namespace Cardio.Backend
             BackendResponse response = default;
             yield return backend.Send("POST", $"{backend.Config.AuthUrl}/signup", "{}", headers, r => response = r);
 
+            _lastAttemptWasTransportFailure = response.IsTransportFailure;
+
             if (!response.Success)
             {
                 // The most likely cause by far, and worth naming explicitly so
                 // it is not mistaken for a network problem.
                 if (response.Body.Contains("anonymous_provider_disabled"))
                 {
+                    _configurationIsBroken = true;
                     SetSignedIn(false, "anonymous sign-ins are disabled in the Supabase dashboard " +
                                        "(Authentication > Sign In / Providers > Anonymous sign-ins)");
                 }
@@ -148,6 +223,8 @@ namespace Cardio.Backend
             yield return backend.Send("POST", $"{backend.Config.AuthUrl}/token?grant_type=refresh_token",
                                       body, headers, r => response = r);
 
+            _lastAttemptWasTransportFailure = response.IsTransportFailure;
+
             if (!response.Success)
             {
                 SetSignedIn(false, response.IsTransportFailure ? "offline" : "refresh rejected");
@@ -174,6 +251,7 @@ namespace Cardio.Backend
                 return;
             }
 
+            _lastAttemptWasTransportFailure = false;
             _accessToken = parsed.access_token;
             userId = parsed.user != null ? parsed.user.id : string.Empty;
 

@@ -255,5 +255,67 @@ namespace Cardio.Tests
             Assert.IsNotEmpty(_save.Progress.SessionHistory);
         }
 
+
+        // ------------------------------------------------------------------
+        // Older save files
+        // ------------------------------------------------------------------
+
+        [Test]
+        public void ASaveFileFromBeforePhase9_StillAcceptsANewSessionRecord()
+        {
+            // Load() null-guards four fields but originally missed SessionHistory,
+            // which Phase 9 added. This writes a file in the pre-Phase-9 shape and
+            // then does the first thing that touches that list.
+            //
+            // Whether JsonUtility leaves an absent List null or lets the field
+            // initialiser stand is exactly the sort of thing worth pinning with a
+            // test rather than reasoning about, because the answer decides whether
+            // every returning player crashes on their first level completion.
+            string legacy = "{\"LastUserId\":\"guest\"," +
+                            "\"LastDisplayName\":\"Guest\"," +
+                            "\"HighestUnlockedLevel\":2," +
+                            "\"CompletedLevels\":[1]," +
+                            "\"TotalSessionsPlayed\":3}";
+
+            File.WriteAllText(_save.SavePath, legacy);
+            _save.Load();
+
+            Assert.IsNotNull(_save.Progress.SessionHistory, "SessionHistory must never be null after a load");
+            Assert.IsNotNull(_save.Progress.PendingSessionLogs, "PendingSessionLogs must never be null after a load");
+
+            Assert.DoesNotThrow(() => _save.AppendSessionRecord(new SessionRecord { Level = 1, Score = 10 }),
+                                "an older save file must still accept a finished attempt");
+
+            Assert.AreEqual(1, _save.Progress.SessionHistory.Count);
+            Assert.AreEqual(2, _save.Progress.HighestUnlockedLevel, "the older file's real data should survive the load");
+        }
+
+        [Test]
+        public void AnInterruptedWrite_LeavesThePreviousSaveIntact()
+        {
+            // The identity and the unsent upload queue live in this file, so a
+            // truncated write costs more than unlocks. SaveNow writes to a
+            // temporary file and swaps it in, so nothing observes a partial one.
+            _save.Progress.HighestUnlockedLevel = 3;
+            _save.Progress.SupabaseUserId = "user-before";
+            _save.SaveNow();
+
+            string before = File.ReadAllText(_save.SavePath);
+            Assert.IsTrue(before.Contains("user-before"));
+
+            // A leftover temp file from a previous crash must not break the swap.
+            File.WriteAllText(_save.SavePath + ".tmp", "{ this is a half-written file");
+
+            _save.Progress.SupabaseUserId = "user-after";
+            _save.SaveNow();
+
+            _save.Load();
+            Assert.AreEqual("user-after", _save.Progress.SupabaseUserId,
+                            "the save should have completed despite a stale temp file");
+            Assert.IsFalse(File.Exists(_save.SavePath + ".tmp"),
+                           "the temp file should have been swapped into place, not left behind");
+        }
+
+
     }
 }

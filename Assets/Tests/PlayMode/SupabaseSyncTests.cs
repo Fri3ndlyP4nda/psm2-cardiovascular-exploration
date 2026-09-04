@@ -374,5 +374,171 @@ namespace Cardio.Tests
                 UnityEngine.Object.DestroyImmediate(cfg);
             }
         }
+
+        // ------------------------------------------------------------------
+        // Behaviour under load: what a busy or unhappy server must not cost us
+        //
+        // These matter most in exactly the situation the project is built for -
+        // a cohort playing at once behind one campus address. Under that load
+        // Supabase answers with 429 and the occasional 5xx, and every one of
+        // those used to be treated as "this row is bad" and deleted.
+        // ------------------------------------------------------------------
+
+        [UnityTest]
+        public IEnumerator A429_KeepsTheRowQueued_RatherThanDeletingIt()
+        {
+            SaveManager save = GameManager.Instance.Save;
+            SessionLogManager logs = SessionLogManager.Instance;
+
+            logs.Enqueue(logs.BuildPayload(new SessionRecord { Level = 1, Score = 50 }));
+
+            _transport.StatusCode = 429;
+            _transport.Body = "{\"message\":\"rate limit exceeded\"}";
+
+            yield return logs.FlushQueue();
+
+            Assert.AreEqual(1, save.Progress.PendingSessionLogs.Count,
+                            "a rate-limited row must stay queued, not be thrown away");
+            StringAssert.Contains("429", logs.LastStatus);
+
+            // ...and must still go up once the server calms down.
+            _transport.StatusCode = 201;
+            _transport.Body = string.Empty;
+            yield return logs.FlushQueue();
+
+            Assert.IsEmpty(save.Progress.PendingSessionLogs, "the row should upload once the server recovers");
+        }
+
+        [UnityTest]
+        public IEnumerator AServerError_KeepsTheRowQueued()
+        {
+            SaveManager save = GameManager.Instance.Save;
+            SessionLogManager logs = SessionLogManager.Instance;
+
+            logs.Enqueue(logs.BuildPayload(new SessionRecord { Level = 2 }));
+
+            _transport.StatusCode = 503;
+            yield return logs.FlushQueue();
+
+            Assert.AreEqual(1, save.Progress.PendingSessionLogs.Count,
+                            "a 5xx is the server's problem, not the row's");
+        }
+
+        [UnityTest]
+        public IEnumerator AMalformedRow_IsStillDropped_SoItCannotBlockTheQueue()
+        {
+            SaveManager save = GameManager.Instance.Save;
+            SessionLogManager logs = SessionLogManager.Instance;
+
+            logs.Enqueue(logs.BuildPayload(new SessionRecord { Level = 1 }));
+
+            _transport.StatusCode = 400;
+            _transport.Body = "{\"message\":\"malformed\"}";
+
+            LogAssert.Expect(LogType.Warning, new System.Text.RegularExpressions.Regex("Dropping a session log"));
+            yield return logs.FlushQueue();
+
+            Assert.IsEmpty(save.Progress.PendingSessionLogs,
+                           "a row the server genuinely refuses must not block everything behind it");
+        }
+
+        [UnityTest]
+        public IEnumerator AnExpiredToken_IsRefreshed_AndTheRowStillArrives()
+        {
+            SaveManager save = GameManager.Instance.Save;
+            SessionLogManager logs = SessionLogManager.Instance;
+
+            logs.Enqueue(logs.BuildPayload(new SessionRecord { Level = 3 }));
+
+            // send 0: the upload, rejected because the JWT has expired
+            // send 1: the token refresh
+            // send 2: the same row again, now accepted
+            _transport.BeforeEachSend = index =>
+            {
+                if (index == 0)
+                {
+                    _transport.StatusCode = 401;
+                    _transport.Body = "{\"message\":\"JWT expired\"}";
+                }
+                else if (index == 1)
+                {
+                    _transport.StatusCode = 200;
+                    _transport.Body = "{\"access_token\":\"fresh-token\"," +
+                                      "\"refresh_token\":\"fresh-refresh\"," +
+                                      "\"user\":{\"id\":\"11111111-2222-3333-4444-555555555555\"}}";
+                }
+                else
+                {
+                    _transport.StatusCode = 201;
+                    _transport.Body = string.Empty;
+                }
+            };
+
+            yield return logs.FlushQueue();
+            _transport.BeforeEachSend = null;
+
+            Assert.IsEmpty(save.Progress.PendingSessionLogs,
+                           "an expired token should cost a refresh, not the attempt: " + logs.LastStatus);
+            Assert.AreEqual("fresh-token", AuthenticationManager.Instance.AccessToken,
+                            "the refreshed token should be the one in use");
+        }
+
+        [UnityTest]
+        public IEnumerator ARowQueuedBeforeSignIn_IsStampedWithTheRealUserId()
+        {
+            SaveManager save = GameManager.Instance.Save;
+            SessionLogManager logs = SessionLogManager.Instance;
+
+            // A row built with no identity available - what happens when a level
+            // finishes before the staggered sign-in has come back.
+            save.Progress.PendingSessionLogs.Add(
+                "{\"user_id\":\"\",\"current_level\":1,\"hints_used\":0}");
+            save.SaveNow();
+
+            yield return logs.FlushQueue();
+
+            Assert.IsEmpty(save.Progress.PendingSessionLogs, "the row should have uploaded");
+            Assert.AreEqual(1, _transport.SentBodies.Count);
+            StringAssert.Contains("\"user_id\":\"11111111-2222-3333-4444-555555555555\"",
+                                  _transport.SentBodies[0],
+                                  "the identity must be stamped on at send time, not left empty from enqueue time");
+        }
+
+        [Test]
+        public void StampUserId_RewritesOnlyTheIdentity()
+        {
+            const string payload = "{\"user_id\":\"\",\"current_level\":2,\"hints_used\":5}";
+
+            string stamped = SessionLogManager.StampUserId(payload, "abc-123");
+
+            Assert.AreEqual("{\"user_id\":\"abc-123\",\"current_level\":2,\"hints_used\":5}", stamped);
+            Assert.AreEqual(payload, SessionLogManager.StampUserId(payload, null),
+                            "no identity to stamp means the payload is left alone");
+        }
+
+        [Test]
+        public void TheUploadQueue_IsBounded()
+        {
+            SaveManager save = GameManager.Instance.Save;
+            SessionLogManager logs = SessionLogManager.Instance;
+
+            // Filled directly rather than through Enqueue: the point is the cap,
+            // not two hundred file writes.
+            for (int i = 0; i < SaveManager.MaxPendingSessionLogs; i++)
+            {
+                save.Progress.PendingSessionLogs.Add("{\"user_id\":\"x\",\"n\":" + i + "}");
+            }
+
+            logs.Enqueue("{\"user_id\":\"x\",\"n\":\"newest\"}");
+
+            Assert.AreEqual(SaveManager.MaxPendingSessionLogs, save.Progress.PendingSessionLogs.Count,
+                            "the queue must not grow past its cap");
+            Assert.IsFalse(save.Progress.PendingSessionLogs.Contains("{\"user_id\":\"x\",\"n\":0}"),
+                           "the oldest row is the one to drop");
+            Assert.IsTrue(save.Progress.PendingSessionLogs.Contains("{\"user_id\":\"x\",\"n\":\"newest\"}"),
+                          "the newest row must be kept");
+        }
+
+
     }
 }
