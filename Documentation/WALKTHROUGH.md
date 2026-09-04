@@ -37,17 +37,23 @@ This is a real consequence of the shipped tuning, not a bug in the sense of brok
 code. It is flagged here rather than changed, because gameplay and content tuning is
 pending playtest notes.
 
-### 2. The correct multiple-choice answer is always the first option
+### 2. The correct multiple-choice answer is always option 0 — FIXED in the panel
 
-All **22** multiple-choice puzzles across the three banks have `CorrectOptionIndex = 0`,
-and `PuzzleUI.ConfigureOptions` writes options in authored order — it does **not**
-shuffle them (only `ConfigureSequence` shuffles, and only sequence steps).
+All **22** multiple-choice puzzles across the three banks still have
+`CorrectOptionIndex = 0`. What changed is that `PuzzleUI.ConfigureOptions` now shuffles
+the *display* order and `OnOptionClicked` maps the clicked button back to the authored
+index, so the correct answer no longer sits on the top button.
 
-The correct answer is therefore always the top button, in every MCQ in the game. A
-player could clear every multiple-choice puzzle without reading it. Sequence puzzles
-are unaffected: their steps *are* shuffled per presentation.
+Previously it always did, and every MCQ in the game could be cleared without reading
+it — which made accuracy, and therefore both the DDA's input and the study's headline
+metric, close to meaningless.
 
-Flagged, not fixed — same reason as above.
+The shuffle lives in the view, not in the data: `CorrectOptionIndex` is untouched and
+`IsCorrectOption` still compares against it, so **the answers listed in this document
+remain correct**. They identify the right answer by its text, and the buttons now
+present that text in a different position each time the puzzle opens.
+`PuzzlePanelContentTests.MultipleChoice_ShufflesTheOptions_SoTheFirstButtonIsNotAlwaysCorrect`
+pins it.
 
 ---
 
@@ -65,7 +71,7 @@ structures (`PuzzleUI.HandleWorldClick`, during a puzzle). `Escape` is owned sol
 | `IdentifyStructure` | Clicking the tagged geometry in the 3D scene | `TargetStructureId` |
 | `ValveIdentification` | Same as above; a valve is the target | `TargetStructureId` |
 | `DragAndDropLabel` | Dragging the label chip onto the geometry | `TargetStructureId` |
-| `MultipleChoice` | Clicking an option button | `CorrectOptionIndex` (always 0 — see above) |
+| `MultipleChoice` | Clicking an option button | `CorrectOptionIndex` (always 0 in the data; button order is shuffled — see above) |
 | `BloodFlowSequence` | Clicking steps in order, then submitting | Exact match to `SequenceSteps` |
 
 **Hints.** There is no HINT button — it was removed in the combat rework. Three
@@ -361,7 +367,7 @@ Hint: *Delicate lung tissue could not survive systemic pressures.*
 | Hint sources | `PuzzleEnums.HintSource`, `PuzzleManager.DeliverEarnedHint` |
 | Combat values | `PlayerAttack` (34 dmg / 2.2 range / 0.5s), `PrefabFactory` (100 HP), `HostileSpawnDirector` (30s) |
 | Controls | `PlayerInputReader` hardware bindings |
-| MCQ index finding | All 22 MCQs in the dump; `PuzzleUI.ConfigureOptions` (no shuffle) |
+| MCQ index finding | All 22 MCQs in the dump; `PuzzleUI.ConfigureOptions` (now shuffles the display order) |
 
 ## UNVERIFIED
 

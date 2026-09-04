@@ -315,10 +315,24 @@ Boot ──► MainMenu ◄──────────────┐
 ```
 
 `Puzzle` is deliberately **not** `Paused`. Pausing sets `Time.timeScale = 0`; puzzle
-mode leaves it at 1, so obstacles keep moving while the player answers (which is what
-makes the Phase 4 DDA pressure meaningful). What puzzle mode does change is the
-cursor — released, so structures can be clicked — and player/camera input, which is
-suppressed because both check for `Playing` specifically.
+mode leaves it at 1, so timers, coroutines and scene loads continue normally. What
+puzzle mode changes is the cursor — released, so structures can be clicked — and
+player/camera input, which is suppressed because both check for `Playing` specifically.
+
+**Puzzle time is safe time.** Anything that can hurt the player checks
+`GameManager.IsGameplayActive`, which is true only in `Playing`: agent movement
+(`PathfindingAgent`), agent contact damage (`ObstacleAgent`) and hazard ticks
+(`HazardVolume`). The reasoning is that during a puzzle the character is frozen and
+the panel covers the view, so damage taken there cannot be avoided, reacted to, or
+even seen — it is a drain with no counterplay rather than difficulty.
+
+This paragraph previously claimed the opposite, that obstacles keep moving while the
+player answers "which is what makes the DDA pressure meaningful". That was never true
+of the code: `PathfindingAgent` has frozen agent movement on this condition since
+Phase 5, and TC-22 step 8 asserts it. What *was* true, until the first playtest found
+it, is that the two damage sources did not check anything — so agents looked stopped
+while still biting, and standing on a plaque drained 14 Blood Count a second at Hard
+while the player could do nothing about it.
 
 `GameManager.SetState` is the only place that writes `Time.timeScale` and the cursor
 lock mode, so those two can never disagree with the visible UI.

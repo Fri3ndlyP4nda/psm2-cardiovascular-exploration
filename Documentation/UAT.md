@@ -126,10 +126,10 @@ Recorded honestly because they affect how the results can be read:
   one that will bite a study day. Every launch signs in, so **thirty launches from the
   same network in one hour is the ceiling** — and a lab or library where every machine
   shares one outbound IP hits it far sooner than the participant count suggests.
-  Beyond the limit sign-in fails, the game keeps playing, and rows queue locally
-  rather than uploading, so the failure is quiet rather than obvious. Plan sessions
-  with that in mind, stagger them, or accept that some data arrives by file rather
-  than by sync. The local save is authoritative either way.
+  Beyond the limit sign-in fails and rows queue locally rather than uploading. The
+  client now staggers, retries and backs off (see §6c), which makes a cohort of thirty
+  to fifty workable, but it cannot raise the ceiling itself. The local save is
+  authoritative either way.
 - **Levels 2 and 3 have never been seen by anyone.** They pass their navigability
   checks, but their pacing is entirely unvalidated — see MR-1 and MR-3 in TESTING.md.
 - **Audio is placeholder tones.** Reactions to sound should not be read as reactions to
@@ -151,6 +151,62 @@ than by hand:
 Sync is a convenience, not the system of record. `psm2_progress.json` on each machine
 holds everything, and the CSV export reads from that file, so **collect the save files
 regardless of whether sync succeeded**.
+
+
+## 6c. Running it for a whole cohort at once
+
+The question this section answers is "what happens if thirty to five hundred people
+play at the same time", and the honest answer has two halves: the **game** does not
+care, and the **backend** is the entire constraint.
+
+### The game itself is unaffected
+
+Every player runs their own copy locally. There is no shared world, no matchmaking, no
+server tick — nothing about one player's session touches another's. Level geometry,
+pathfinding, puzzles, DDA and scoring are all in-process. Five hundred simultaneous
+players are five hundred independent single-player sessions, and each one performs
+exactly as it does alone.
+
+### The backend is where concurrency lands
+
+All shared load is one `INSERT` into `session_logs` per finished level, plus one
+sign-in per launch. That is a very small amount of traffic per player — but it arrives
+in a burst, because a class starts together, and it arrives **from one IP**, because
+campus networks NAT everyone behind a single address.
+
+Four things were wrong for that situation and have been fixed:
+
+| Was | Now |
+|---|---|
+| Sign-in attempted **once**; one failure disabled sync for the whole session | Retried with exponential backoff and jitter, up to six attempts |
+| Every client signed in the instant it launched, in one synchronised burst | First attempt staggered by a random delay, so the burst spreads |
+| **Any** non-2xx deleted the queued row — including 429 and every 5xx | 401/408/425/429/5xx keep the row and stop the flush; only a genuinely bad row (400/403/409/422) is dropped |
+| A token expiring mid-session meant every later level was deleted | A 401 triggers one refresh and the row is retried |
+
+Two more, from the same pass: the upload queue is now bounded (200 rows), and a row
+queued before sign-in completes gets the real `user_id` stamped on at send time
+instead of being sent with an empty one and rejected forever.
+
+### What is still a ceiling, and what to do about it
+
+- **30 anonymous sign-ins per hour per IP is a Supabase limit, not a client one.**
+  Retrying rides out a burst; it cannot create allowance that does not exist. For a
+  cohort above ~30 on one network, either split the sessions across hours, put groups
+  on different networks, or accept collecting `psm2_progress.json` by file.
+- **Free-tier limits apply.** One row per completed level is tiny, but the project's
+  quota is shared with everything else on it.
+- **Failures are still quiet to the player.** `SessionLogManager` exposes `QueuedCount`
+  and `LastStatus`, and `QueueChanged` is raised, but no HUD element displays them.
+  A player whose data never syncs sees nothing. The local save is authoritative, so no
+  data is lost — but the invigilator gets no signal either.
+
+### Not verified
+
+None of the above has been tested against real concurrent load. The retry, backoff,
+stagger and status-classification logic is covered by `SupabaseSyncTests` against a
+scripted transport, and the single-client round trip was verified live on 2026-09-01.
+**Nobody has run thirty clients at once.** Treat this section as reasoning plus unit
+coverage, not as a load test.
 
 ## 7. Before the first participant
 
