@@ -144,9 +144,36 @@ namespace Cardio.Gameplay
                 return null;
             }
 
-            if (_blasts.TryGetValue(puzzleId, out LeukemicBlastAgent existing) && existing != null && existing.IsAlive)
+            if (_blasts.TryGetValue(puzzleId, out LeukemicBlastAgent existing) && existing != null)
             {
-                Debug.Log($"[HostileSpawnDirector] '{puzzleId}' already has a blast alive - not stacking another.");
+                if (existing.IsAlive)
+                {
+                    Debug.Log($"[HostileSpawnDirector] '{puzzleId}' already has a blast alive - not stacking another.");
+                    return existing;
+                }
+
+                // This question's blast was killed and is sitting inactive. Revive it
+                // rather than leaving it behind and instantiating a replacement.
+                //
+                // The old code only returned early for a *live* blast, so a second
+                // wrong answer after a kill overwrote the dictionary entry and
+                // orphaned the previous object - still parented, still subscribed to
+                // its own Died event, never destroyed and never revivable, because
+                // RespawnAll only walks the dictionary. That is a real sequence:
+                // answer wrong, kill the blast for its hint, answer wrong again.
+                //
+                // Respawn() is exactly this path - it is what the delayed respawn
+                // uses - so reusing it also keeps one blast per question true of the
+                // objects, not just of the dictionary.
+                Vector3 returnTo = ChooseSpawnPosition(puzzleId);
+                existing.Initialise(puzzleId, returnTo);
+                existing.Respawn();
+
+                spawnedThisLevel++;
+                aliveCount++;
+                PerformanceTracker.Instance?.RecordHostileSpawned();
+
+                Debug.Log($"[HostileSpawnDirector] Revived the blast for '{puzzleId}' at {returnTo}.");
                 return existing;
             }
 

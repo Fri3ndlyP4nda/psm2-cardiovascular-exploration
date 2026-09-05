@@ -269,5 +269,143 @@ namespace Cardio.Tests
             Assert.AreEqual(DifficultyTier.Hard, GameManager.Instance.Session.CurrentDifficulty,
                             "a tier change should reach the session the HUD reads");
         }
+
+        // ------------------------------------------------------------------
+        // Two things happening at once
+        //
+        // Each of these is a state the game can reach but nothing had ever
+        // exercised: the player is mid-puzzle when something else ends the level
+        // out from under them. The panel is modal and suppresses input, so a
+        // puzzle left open over a GameOver or LevelComplete screen would be a
+        // softlock rather than a cosmetic glitch.
+        // ------------------------------------------------------------------
+
+        [UnityTest]
+        public IEnumerator DyingWhileAPuzzlePanelIsOpen_StillReachesGameOver()
+        {
+            PuzzleData puzzle = FirstOpenablePuzzle();
+            Assert.IsTrue(PuzzleManager.Instance.BeginPuzzle(puzzle), "a puzzle should open");
+            yield return TestLevel.Frames(2);
+
+            Assert.AreEqual(GameState.Puzzle, GameManager.Instance.State);
+
+            PlayerHealth health = TestLevel.Health;
+            health.TakeDamage(health.MaxBloodCount);
+            yield return TestLevel.Frames(3);
+
+            Assert.AreEqual(GameState.GameOver, GameManager.Instance.State,
+                            "dying during a puzzle must still reach the failure screen");
+            Assert.IsFalse(health.IsAlive);
+        }
+
+        [UnityTest]
+        public IEnumerator AfterDyingDuringAPuzzle_RestartingGivesACleanLevel()
+        {
+            PuzzleData puzzle = FirstOpenablePuzzle();
+            Assert.IsTrue(PuzzleManager.Instance.BeginPuzzle(puzzle));
+            yield return TestLevel.Frames(2);
+
+            PlayerHealth health = TestLevel.Health;
+            health.TakeDamage(health.MaxBloodCount);
+            yield return TestLevel.Frames(3);
+            Assert.AreEqual(GameState.GameOver, GameManager.Instance.State);
+
+            // Restart the way the failure screen's button does.
+            GameManager.Instance.RestartCurrentLevel();
+            yield return TestLevel.WaitForNoLoadInFlight();
+            yield return TestLevel.WaitUntilReady();
+
+            Assert.AreEqual(GameState.Playing, GameManager.Instance.State,
+                            "a restart should hand control back to the player");
+            Assert.IsFalse(PuzzleManager.Instance.IsPuzzleActive,
+                           "the puzzle panel must not survive into the restarted level");
+            Assert.AreEqual(TestLevel.Health.MaxBloodCount, TestLevel.Health.CurrentBloodCount,
+                            "a restarted level should start on a full Blood Count");
+            Assert.AreEqual(1f, Time.timeScale, "time must be running again after a restart");
+        }
+
+        [UnityTest]
+        public IEnumerator AbandoningAPuzzle_ReturnsControl_AndLeavesNoResidue()
+        {
+            PuzzleData puzzle = FirstOpenablePuzzle();
+            Assert.IsTrue(PuzzleManager.Instance.BeginPuzzle(puzzle));
+            yield return TestLevel.Frames(2);
+            Assert.AreEqual(GameState.Puzzle, GameManager.Instance.State);
+
+            PuzzleManager.Instance.AbandonPuzzle();
+            yield return TestLevel.Frames(2);
+
+            Assert.AreEqual(GameState.Playing, GameManager.Instance.State,
+                            "abandoning must return control, not strand the player");
+            Assert.IsFalse(PuzzleManager.Instance.IsPuzzleActive);
+            Assert.IsNull(PuzzleManager.Instance.Current, "no puzzle should still be current");
+
+            // ...and the same puzzle must still be openable afterwards.
+            Assert.IsTrue(PuzzleManager.Instance.BeginPuzzle(puzzle),
+                          "an abandoned puzzle should be reopenable");
+            PuzzleManager.Instance.AbandonPuzzle();
+            yield return TestLevel.Frames(2);
+        }
+
+        [UnityTest]
+        public IEnumerator MovingToTheNextLevel_DoesNotCarryTheLastLevelsPuzzleState()
+        {
+            // PuzzleManager is scene-level but the trackers and the DDA are not, so
+            // this checks the seam between them: solved-state and objectives must be
+            // per level, while the session's tier carries over on purpose.
+            PuzzleData puzzle = FirstOpenablePuzzle();
+            Assert.IsTrue(PuzzleManager.Instance.BeginPuzzle(puzzle));
+            SubmitCorrect(puzzle);
+            yield return TestLevel.Frames(3);
+
+            Assert.IsTrue(PuzzleManager.Instance.IsSolved(puzzle.PuzzleId),
+                          "the puzzle should be recorded as solved in level 1");
+
+            yield return TestLevel.Load(GameConstants.SceneLevel2);
+
+            Assert.AreEqual(LevelId.Level2_Brain, GameManager.Instance.Session.CurrentLevel);
+            Assert.IsFalse(PuzzleManager.Instance.IsPuzzleActive,
+                           "no puzzle should be open in a freshly loaded level");
+            Assert.IsFalse(PuzzleManager.Instance.IsSolved(puzzle.PuzzleId),
+                           "level 1's solved questions must not count as solved in level 2");
+            Assert.Greater(ObjectiveManager.Instance.Objectives.Count, 0,
+                           "level 2 should publish its own objectives");
+            Assert.AreEqual(0, ObjectiveManager.Instance.CompletedCount,
+                            "level 2's objectives must all start incomplete");
+        }
+
+        // ------------------------------------------------------------------
+
+        private static PuzzleData FirstOpenablePuzzle()
+        {
+            foreach (PuzzleData puzzle in PuzzleManager.Instance.Bank.Puzzles)
+            {
+                if (puzzle == null) continue;
+                if (puzzle.Complexity > PuzzleManager.Instance.MaxComplexity) continue;
+                if (PuzzleManager.Instance.IsSolved(puzzle.PuzzleId)) continue;
+                return puzzle;
+            }
+
+            Assert.Fail("no puzzle available at the current tier");
+            return null;
+        }
+
+        private static void SubmitCorrect(PuzzleData puzzle)
+        {
+            switch (puzzle.Type)
+            {
+                case PuzzleType.MultipleChoice:
+                    PuzzleManager.Instance.SubmitOption(puzzle.CorrectOptionIndex);
+                    break;
+                case PuzzleType.BloodFlowSequence:
+                    PuzzleManager.Instance.SubmitSequence(new System.Collections.Generic.List<string>(puzzle.SequenceSteps));
+                    break;
+                default:
+                    PuzzleManager.Instance.SubmitStructure(puzzle.TargetStructureId);
+                    break;
+            }
+        }
+
+
     }
 }

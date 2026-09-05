@@ -315,6 +315,60 @@ namespace Cardio.Tests
             Assert.AreEqual(1, attack.Kills, "the kill should be attributed to the player");
         }
 
+        [UnityTest]
+        public IEnumerator AnsweringWrongAfterAKill_RevivesTheSameBlast_RatherThanLeakingAReplacement()
+        {
+            // A real sequence: answer wrong, kill the blast to earn its hint, then
+            // get the same question wrong again. The early return in TrySpawnFor only
+            // covered a *live* blast, so this path used to instantiate a replacement
+            // and orphan the dead one - still parented, still subscribed to its own
+            // Died event, and unreachable by RespawnAll, which only walks the
+            // dictionary. Nothing counted it, so nothing noticed.
+            PuzzleData puzzle = OpenAnyPuzzle();
+
+            SubmitWrong(puzzle);
+            yield return TestLevel.Frames(2);
+
+            LeukemicBlastAgent first = _director.BlastFor(puzzle.PuzzleId);
+            Assert.IsNotNull(first, "the first wrong answer should have spawned a blast");
+            Assert.AreEqual(1, CountBlastObjects(), "exactly one blast object should exist");
+
+            first.Health.TakeDamage(999);
+            yield return TestLevel.Frames(2);
+            Assert.IsFalse(first.IsAlive, "the blast should be dead");
+            Assert.AreEqual(0, _director.AliveCount);
+
+            // Same question, wrong again. No need to reopen: one wrong answer does
+            // not resolve a puzzle - the attempt allowance is three - so the panel is
+            // still taking answers.
+            Assert.IsTrue(PuzzleManager.Instance.IsAcceptingAnswers,
+                          "the puzzle should still be open after a single wrong answer");
+            SubmitWrong(puzzle);
+            yield return TestLevel.Frames(2);
+
+            LeukemicBlastAgent second = _director.BlastFor(puzzle.PuzzleId);
+            Assert.IsNotNull(second, "a blast should be present again");
+            Assert.IsTrue(second.IsAlive, "the revived blast should be alive");
+            Assert.AreSame(first, second, "the dead blast should be revived, not replaced");
+
+            // The assertion that actually catches the leak: inactive objects count too.
+            Assert.AreEqual(1, CountBlastObjects(),
+                            "reviving must not leave an orphaned blast object behind");
+        }
+
+        /// <summary>
+        /// Every blast object in the scene, including deactivated ones.
+        ///
+        /// FindObjectsInactive.Include is the point: a killed blast is only
+        /// SetActive(false), so a leaked one is invisible to any count that skips
+        /// inactive objects - which is why nothing caught this.
+        /// </summary>
+        private static int CountBlastObjects()
+        {
+            return Object.FindObjectsByType<LeukemicBlastAgent>(
+                FindObjectsInactive.Include, FindObjectsSortMode.None).Length;
+        }
+
         // ------------------------------------------------------------------
         // Helpers
         // ------------------------------------------------------------------
