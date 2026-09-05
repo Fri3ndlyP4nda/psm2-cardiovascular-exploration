@@ -369,6 +369,62 @@ namespace Cardio.Tests
                 FindObjectsInactive.Include, FindObjectsSortMode.None).Length;
         }
 
+        [UnityTest]
+        public IEnumerator ASwing_ShowsTheOxygenBurst_ThenHidesItAgain()
+        {
+            // swingVisual was the one serialized reference no factory ever wired, so
+            // attacking produced no visual at all. That matters more than it sounds:
+            // combat is the only route to a hint at the higher tiers, and a swing
+            // that looks like nothing teaches the player nothing about its reach.
+            PlayerAttack attack = Object.FindAnyObjectByType<PlayerAttack>();
+            Assert.IsNotNull(attack, "the player should have a PlayerAttack");
+
+            Transform burst = TestLevel.Player.transform.Find("SwingBurst");
+            Assert.IsNotNull(burst, "the player prefab should carry a swing burst visual");
+
+            var renderer = burst.GetComponent<Renderer>();
+            Assert.IsNotNull(renderer, "the burst needs a renderer to be seen");
+            Assert.IsFalse(renderer.enabled, "the burst should be hidden until a swing");
+
+            attack.TrySwing();
+            yield return null;
+
+            Assert.IsTrue(attack.BurstIsPlaying, "swinging should start the burst");
+            Assert.IsTrue(renderer.enabled, "the burst should be visible during a swing");
+
+            yield return new WaitForSeconds(0.6f);
+
+            Assert.IsFalse(attack.BurstIsPlaying, "the burst should finish on its own");
+            Assert.IsFalse(renderer.enabled,
+                           "the burst must hide again rather than parking in front of the player");
+        }
+
+        [UnityTest]
+        public IEnumerator ABlastFlashesWhenHit_SoALandedSwingIsVisible()
+        {
+            // NpcHealth has raised HealthChanged since Phase 6 and nothing listened,
+            // so a blast absorbed three swings without reacting to the first two.
+            // Unfair as well as unsatisfying: the attack is a sphere in front of the
+            // player, and there was no way to learn its reach except by dying to a
+            // blast you thought you were hitting.
+            PuzzleData puzzle = OpenAnyPuzzle();
+            SubmitWrong(puzzle);
+            yield return TestLevel.Frames(2);
+
+            LeukemicBlastAgent blast = _director.BlastFor(puzzle.PuzzleId);
+            Assert.IsNotNull(blast, "a wrong answer should have spawned a blast");
+            Assert.IsFalse(blast.HitFlashActive, "nothing should be flashing before a hit");
+
+            blast.Health.TakeDamage(10);
+            yield return null;
+
+            Assert.IsTrue(blast.HitFlashActive, "a landed hit should flash the blast");
+            Assert.IsTrue(blast.IsAlive, "10 damage should not have killed it");
+
+            yield return new WaitForSeconds(0.4f);
+            Assert.IsFalse(blast.HitFlashActive, "the flash should settle on its own");
+        }
+
         // ------------------------------------------------------------------
         // Helpers
         // ------------------------------------------------------------------

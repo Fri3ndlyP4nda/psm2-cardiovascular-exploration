@@ -36,7 +36,21 @@ namespace Cardio.EditorTools
         private const float ExpectedFarClip = 160f;
 
         /// <summary>Upper bound on distinct materials in a level, per the shared-material decision.</summary>
-        private const int MaterialBudget = 16;
+        /// <summary>
+        /// Shared materials allowed per scene, counted across every MeshRenderer.
+        ///
+        /// Raised from 16 to 17 when the player gained M_OxygenBurst, the swing
+        /// burst. Recorded rather than quietly bumped: the budget exists to keep
+        /// draw batches down for the 60 FPS target, and one more material is one
+        /// more batch, so it should only move for something that earns it.
+        ///
+        /// This one does. The attack is the only route to a hint at the higher
+        /// tiers and previously had no visual at all, so a player could not tell a
+        /// landed swing from a missed one. The cost is also close to the smallest
+        /// it could be: a single small sphere whose renderer is disabled except for
+        /// the ~0.3s a swing is on screen.
+        /// </summary>
+        private const int MaterialBudget = 17;
 
         [MenuItem("PSM2/Diagnostics/Run Performance Budget Check", priority = 74)]
         public static void Run()

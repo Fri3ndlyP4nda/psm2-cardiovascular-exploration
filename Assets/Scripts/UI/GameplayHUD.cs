@@ -1,4 +1,5 @@
 using Cardio.Core;
+using Cardio.DDA;
 using Cardio.Player;
 using TMPro;
 using UnityEngine;
@@ -62,6 +63,9 @@ namespace Cardio.UI
         /// walk. A study participant handed a laptop for forty minutes should not
         /// have to guess the controls.
         /// </summary>
+        /// <summary>Prefix on tier announcements, so the expiry timer can recognise its own.</summary>
+        private const string TierAnnouncementPrefix = "Difficulty ";
+
         private const string ControlsReminder =
             "WASD move   \u00B7   Mouse look   \u00B7   Space jump   \u00B7   E examine   \u00B7   Esc pause";
 
@@ -69,7 +73,21 @@ namespace Cardio.UI
         [Tooltip("Seconds the control reminder stays on screen when a level begins.")]
         [SerializeField, Range(0f, 30f)] private float controlsReminderSeconds = 8f;
 
+        [Header("Damage feedback")]
+        [Tooltip("How long the Blood Count bar flashes after a hit.")]
+        [SerializeField, Range(0f, 1f)] private float damageFlashSeconds = 0.35f;
+        [SerializeField] private Color damageFlashColor = new Color(1f, 0.95f, 0.9f);
+
         private PlayerHealth _health;
+
+        /// <summary>Colour the bar should settle back to once a flash ends.</summary>
+        private Color _restingFillColor;
+        private float _damageFlashUntil = -1f;
+
+        /// <summary>Last tier announced, so only real changes are called out.</summary>
+        private DifficultyTier _lastAnnouncedTier;
+        private bool _hasAnnouncedTier;
+
         private LevelId _controlsShownForLevel = LevelId.None;
         private float _controlsHideAtTime = -1f;
         private float _fpsAccumulator;
@@ -77,6 +95,12 @@ namespace Cardio.UI
         private float _fpsTimer;
 
         public ObjectiveBoardUI ObjectiveBoard => objectiveBoard;
+
+        /// <summary>True while the Blood Count bar is flashing from a hit.</summary>
+        public bool DamageFlashActive => _damageFlashUntil >= 0f;
+
+        /// <summary>Whatever the hint line currently reads. Empty when nothing is shown.</summary>
+        public string CurrentHintText => hintLabel != null ? hintLabel.text : string.Empty;
 
         private void Awake()
         {
@@ -95,6 +119,13 @@ namespace Cardio.UI
                 gm.StateChanged += OnStateChanged;
                 OnSessionChanged(gm.Session);
             }
+
+            // The DDA is the centrepiece of this project and, until now, the one
+            // thing the player could not perceive at all: the tier label changed
+            // quietly in a corner and nothing marked the moment. A study
+            // participant cannot report on adaptation they never noticed.
+            var dda = Cardio.DDA.DDAManager.Instance;
+            if (dda != null) dda.TierChanged += OnTierChanged;
         }
 
         private void OnDisable()
@@ -105,6 +136,9 @@ namespace Cardio.UI
                 gm.SessionChanged -= OnSessionChanged;
                 gm.StateChanged -= OnStateChanged;
             }
+
+            var dda = Cardio.DDA.DDAManager.Instance;
+            if (dda != null) dda.TierChanged -= OnTierChanged;
 
             UnbindHealth();
         }
@@ -123,6 +157,70 @@ namespace Cardio.UI
         {
             if (showFps && fpsLabel != null) UpdateFpsCounter();
             ExpireControlsReminder();
+            UpdateDamageFlash();
+        }
+
+        /// <summary>
+        /// Flashes the Blood Count bar when the player is hit.
+        ///
+        /// PlayerHealth has raised Damaged since Phase 1 and only the audio cue and
+        /// the metrics tracker ever listened, so losing Blood Count had no visual
+        /// signal at all beyond a bar that was already shrinking. A hit the player
+        /// does not notice is a hit they cannot learn from - which matters most for
+        /// hazards, where the lesson is "do not stand there".
+        /// </summary>
+        private void OnDamaged(int amount)
+        {
+            if (amount <= 0 || damageFlashSeconds <= 0f) return;
+
+            _damageFlashUntil = Time.unscaledTime + damageFlashSeconds;
+            if (bloodCountFill != null) bloodCountFill.color = damageFlashColor;
+        }
+
+        private void UpdateDamageFlash()
+        {
+            if (_damageFlashUntil < 0f) return;
+
+            if (Time.unscaledTime >= _damageFlashUntil)
+            {
+                _damageFlashUntil = -1f;
+                if (bloodCountFill != null) bloodCountFill.color = _restingFillColor;
+                return;
+            }
+
+            if (bloodCountFill == null) return;
+
+            // Unscaled, so the flash still resolves if something froze time.
+            float remaining = (_damageFlashUntil - Time.unscaledTime) / Mathf.Max(0.0001f, damageFlashSeconds);
+            bloodCountFill.color = Color.Lerp(_restingFillColor, damageFlashColor, remaining);
+        }
+
+        /// <summary>Announces a difficulty change, with its direction.</summary>
+        private void OnTierChanged(DifficultySettings settings)
+        {
+            if (settings == null) return;
+
+            DifficultyTier tier = settings.Tier;
+
+            // The first call is the session settling on its starting tier, not an
+            // adaptation, so it is recorded without being announced.
+            if (!_hasAnnouncedTier)
+            {
+                _hasAnnouncedTier = true;
+                _lastAnnouncedTier = tier;
+                return;
+            }
+
+            if (tier == _lastAnnouncedTier) return;
+
+            bool harder = tier > _lastAnnouncedTier;
+            _lastAnnouncedTier = tier;
+
+            ShowHint(harder
+                ? $"{TierAnnouncementPrefix}raised to {tier} - you are answering well."
+                : $"{TierAnnouncementPrefix}eased to {tier} - take your time.");
+
+            _controlsHideAtTime = Time.unscaledTime + 5f;
         }
 
         /// <summary>
@@ -135,7 +233,19 @@ namespace Cardio.UI
             if (_controlsHideAtTime < 0f || Time.unscaledTime < _controlsHideAtTime) return;
 
             _controlsHideAtTime = -1f;
-            if (hintLabel != null && hintLabel.text == ControlsReminder) ClearHint();
+
+            // Only clears messages this class put up - the controls reminder and the
+            // tier announcement. A hint from HintManager arriving in between wins and
+            // must not be wiped by a timer it knows nothing about.
+            if (hintLabel == null) return;
+
+            // ClearHint sets the label to null, so this has to tolerate a null
+            // string - StartsWith on one throws, and the exception surfaced as
+            // unrelated tests failing several classes later.
+            string current = hintLabel.text;
+            if (string.IsNullOrEmpty(current)) return;
+
+            if (current == ControlsReminder || current.StartsWith(TierAnnouncementPrefix)) ClearHint();
         }
 
         // ------------------------------------------------------------------
@@ -152,6 +262,7 @@ namespace Cardio.UI
             if (_health == null) return;
 
             _health.BloodCountChanged += OnBloodCountChanged;
+            _health.Damaged += OnDamaged;
             OnBloodCountChanged(_health.CurrentBloodCount, _health.MaxBloodCount);
         }
 
@@ -159,6 +270,7 @@ namespace Cardio.UI
         {
             if (_health == null) return;
             _health.BloodCountChanged -= OnBloodCountChanged;
+            _health.Damaged -= OnDamaged;
             _health = null;
         }
 
@@ -170,10 +282,15 @@ namespace Cardio.UI
         {
             float normalised = max <= 0 ? 0f : (float)current / max;
 
+            _restingFillColor = normalised <= criticalThreshold ? criticalColor : healthyColor;
+
             if (bloodCountFill != null)
             {
                 bloodCountFill.fillAmount = normalised;
-                bloodCountFill.color = normalised <= criticalThreshold ? criticalColor : healthyColor;
+
+                // Do not stamp over an in-flight flash; Update restores the resting
+                // colour when it finishes.
+                if (_damageFlashUntil < 0f) bloodCountFill.color = _restingFillColor;
             }
 
             if (bloodCountLabel != null) bloodCountLabel.text = $"{current} / {max}";

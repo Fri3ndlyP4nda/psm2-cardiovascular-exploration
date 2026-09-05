@@ -199,6 +199,56 @@ namespace Cardio.EditorTools
             return mat;
         }
 
+        /// <summary>
+        /// A translucent material, for effect geometry rather than surfaces.
+        ///
+        /// Transparency on the Standard shader is not one flag. The blend modes,
+        /// ZWrite, the shader keywords and the render queue all have to agree, and
+        /// setting _Mode alone leaves the material stubbornly opaque - which is the
+        /// usual way a "transparent" material ends up rendering as a solid ball.
+        /// This sets the whole set, and the URP equivalent alongside it.
+        /// </summary>
+        public static Material CreateTransparentMaterial(string name, Color color, Color? emission = null)
+        {
+            string path = $"{MaterialsFolder}/{name}.mat";
+            Material mat = AssetDatabase.LoadAssetAtPath<Material>(path);
+
+            if (mat == null)
+            {
+                mat = new Material(FindLitShader());
+                AssetDatabase.CreateAsset(mat, path);
+            }
+
+            mat.color = color;
+            if (mat.HasProperty("_BaseColor")) mat.SetColor("_BaseColor", color);
+            if (mat.HasProperty("_Metallic")) mat.SetFloat("_Metallic", 0f);
+            if (mat.HasProperty("_Glossiness")) mat.SetFloat("_Glossiness", 0.3f);
+
+            if (mat.HasProperty("_Mode")) mat.SetFloat("_Mode", 3f);        // Built-in: Transparent
+            if (mat.HasProperty("_Surface")) mat.SetFloat("_Surface", 1f);  // URP: Transparent
+
+            // SetFloat rather than SetInt: SetInt is obsolete in Unity 6 and these
+            // properties are floats in the shader anyway.
+            mat.SetFloat("_SrcBlend", (float)UnityEngine.Rendering.BlendMode.SrcAlpha);
+            mat.SetFloat("_DstBlend", (float)UnityEngine.Rendering.BlendMode.OneMinusSrcAlpha);
+            mat.SetFloat("_ZWrite", 0f);
+
+            mat.DisableKeyword("_ALPHATEST_ON");
+            mat.EnableKeyword("_ALPHABLEND_ON");
+            mat.DisableKeyword("_ALPHAPREMULTIPLY_ON");
+            mat.renderQueue = (int)UnityEngine.Rendering.RenderQueue.Transparent;
+
+            if (mat.HasProperty("_EmissionColor"))
+            {
+                mat.EnableKeyword("_EMISSION");
+                mat.globalIlluminationFlags = MaterialGlobalIlluminationFlags.RealtimeEmissive;
+                mat.SetColor("_EmissionColor", emission ?? Color.black);
+            }
+
+            EditorUtility.SetDirty(mat);
+            return mat;
+        }
+
         // ---- Shared palette (voxel style: flat, high contrast, cheap) ----
         public static Material MuscleWall => CreateMaterial("M_MuscleWall", new Color(0.42f, 0.10f, 0.13f));
         public static Material MuscleWallDark => CreateMaterial("M_MuscleWallDark", new Color(0.30f, 0.07f, 0.10f));
@@ -212,6 +262,10 @@ namespace Cardio.EditorTools
         public static Material Oxygenated => CreateMaterial("M_Oxygenated", new Color(0.85f, 0.20f, 0.22f));
         public static Material Deoxygenated => CreateMaterial("M_Deoxygenated", new Color(0.24f, 0.36f, 0.66f));
         public static Material ExitGlow => CreateMaterial("M_ExitMarker", new Color(0.35f, 0.85f, 0.70f), 0.1f, new Color(0.10f, 0.35f, 0.28f));
+
+        /// <summary>The oxygen burst the player throws at a leukemic blast.</summary>
+        public static Material OxygenBurst => CreateTransparentMaterial(
+            "M_OxygenBurst", new Color(0.55f, 0.90f, 1f, 0.5f), new Color(0.10f, 0.38f, 0.48f));
 
         // Immune cells: neutrophils pale and aggressive, monocytes darker and bulky.
         public static Material Neutrophil => CreateMaterial("M_Neutrophil", new Color(0.85f, 0.87f, 0.72f));

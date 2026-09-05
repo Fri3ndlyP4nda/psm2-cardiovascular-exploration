@@ -133,6 +133,31 @@ namespace Cardio.EditorTools
             Debug.Log("[PSM2] Build Settings scene list updated.");
         }
 
+        /// <summary>
+        /// Rebuilds materials and prefabs without regenerating the scenes.
+        ///
+        /// The full rebuild rewrites all five scene files, which is a large and
+        /// mostly noise-shaped diff when the only change is to a prefab. Scenes
+        /// hold prefab *instances*, so a rebuilt prefab propagates into them on its
+        /// own - which makes this the right granularity for a change to the player
+        /// or an obstacle.
+        /// </summary>
+        [MenuItem(MenuRoot + "Setup/Rebuild Prefabs and Materials Only", priority = 23)]
+        public static void RebuildPrefabsAndMaterials()
+        {
+            ProjectAssets.CreateFolders();
+            CreateAllMaterials();
+
+            PrefabFactory.CreatePlayerPrefab();
+            PrefabFactory.CreateObstaclePrefabs();
+            PrefabFactory.CreateBlastPrefab();
+
+            AssetDatabase.SaveAssets();
+            AssetDatabase.Refresh();
+
+            Debug.Log("[PSM2] Rebuilt materials and prefabs. Scenes were not touched.");
+        }
+
         [MenuItem(MenuRoot + "Setup/Apply Player and Quality Settings", priority = 22)]
         public static void ApplyProjectSettings()
         {
@@ -394,6 +419,7 @@ namespace Cardio.EditorTools
         /// <summary>Touches every shared material so they all exist before the scenes reference them.</summary>
         private static void CreateAllMaterials()
         {
+            _ = ProjectAssets.OxygenBurst;
             _ = ProjectAssets.MuscleWall;
             _ = ProjectAssets.MuscleWallDark;
             _ = ProjectAssets.Endocardium;

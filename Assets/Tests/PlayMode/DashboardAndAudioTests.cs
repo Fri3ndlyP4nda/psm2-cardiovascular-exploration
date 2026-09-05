@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using Cardio.Core;
+using Cardio.DDA;
 using Cardio.Data;
 using Cardio.Gameplay;
 using Cardio.UI;
@@ -247,6 +248,55 @@ namespace Cardio.Tests
 
             return null;
         }
+
+
+        // ------------------------------------------------------------------
+        // Feedback the player can actually perceive
+        // ------------------------------------------------------------------
+
+        [UnityTest]
+        public IEnumerator TakingDamage_FlashesTheBloodCountBar()
+        {
+            // PlayerHealth has raised Damaged since Phase 1, and only the audio cue
+            // and the metrics tracker ever listened - so losing Blood Count had no
+            // visual signal beyond a bar that was already shrinking.
+            GameplayHUD hud = GameplayHUD.Instance;
+            Assert.IsNotNull(hud, "the gameplay HUD should exist");
+            Assert.IsFalse(hud.DamageFlashActive, "nothing should be flashing before a hit");
+
+            TestLevel.Health.TakeDamage(10);
+            yield return null;
+
+            Assert.IsTrue(hud.DamageFlashActive, "a hit should flash the bar");
+
+            yield return new WaitForSeconds(0.6f);
+            Assert.IsFalse(hud.DamageFlashActive, "the flash should settle back on its own");
+        }
+
+        [UnityTest]
+        public IEnumerator ChangingTier_TellsThePlayer_AndSaysWhichWay()
+        {
+            // The DDA is the centrepiece of this project and was the one thing the
+            // player could not perceive: the tier label changed quietly in a corner
+            // and nothing marked the moment.
+            GameplayHUD hud = GameplayHUD.Instance;
+            Assert.IsNotNull(hud);
+
+            DDAManager.Instance.ForceTier(DifficultyTier.Easy, "test baseline");
+            yield return null;
+
+            DDAManager.Instance.ForceTier(DifficultyTier.Hard, "test promotion");
+            yield return null;
+
+            StringAssert.Contains("Hard", hud.CurrentHintText, "a promotion should be announced");
+            StringAssert.Contains("raised", hud.CurrentHintText, "the announcement should say which way it went");
+
+            DDAManager.Instance.ForceTier(DifficultyTier.Easy, "test demotion");
+            yield return null;
+
+            StringAssert.Contains("eased", hud.CurrentHintText, "a demotion should read differently from a promotion");
+        }
+
 
     }
 }

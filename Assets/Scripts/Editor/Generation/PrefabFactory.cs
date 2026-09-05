@@ -70,15 +70,45 @@ namespace Cardio.EditorTools
             CreateBlock(visual.transform, "Pupil_L", new Vector3(-0.26f, 0.10f, 0.66f), new Vector3(0.10f, 0.10f, 0.08f), ProjectAssets.EyePupil);
             CreateBlock(visual.transform, "Pupil_R", new Vector3(0.26f, 0.10f, 0.66f), new Vector3(0.10f, 0.10f, 0.08f), ProjectAssets.EyePupil);
 
+            // ---- Swing burst ----
+            // The attack's hit volume, made visible. Position and size are taken
+            // from the OverlapSphere in PlayerAttack.TrySwing, so what the player
+            // sees is literally where the damage lands - which is the whole point:
+            // combat is the only route to a hint at the higher tiers, and a swing
+            // that looks like nothing teaches the player nothing about its reach.
+            const float attackRange = 2.2f;    // PlayerAttack.range
+            const float attackRadius = 0.9f;   // PlayerAttack.radius
+
+            GameObject burst = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+            burst.name = "SwingBurst";
+            burst.transform.SetParent(root.transform, false);
+            burst.transform.localPosition = new Vector3(0f, 0.8f, attackRange * 0.6f);
+            burst.transform.localScale = Vector3.one * (attackRadius * 2f);
+
+            // Purely cosmetic: a collider here would push the player around and
+            // would be picked up by the attack's own overlap query.
+            Object.DestroyImmediate(burst.GetComponent<Collider>());
+
+            var burstRenderer = burst.GetComponent<MeshRenderer>();
+            burstRenderer.sharedMaterial = ProjectAssets.OxygenBurst;
+            burstRenderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            burstRenderer.receiveShadows = false;
+            burstRenderer.enabled = false;   // PlayerAttack turns it on for the swing
+
             // ---- Behaviour ----
             root.AddComponent<PlayerHealth>();
             root.AddComponent<PlayerInteraction>();   // Phase 2: puzzle station activation
-            root.AddComponent<PlayerAttack>();        // oxygen burst vs leukemic blasts
+            var playerAttack = root.AddComponent<PlayerAttack>();   // oxygen burst vs leukemic blasts
             var playerController = root.AddComponent<PlayerController>();
 
             using (var w = new EditorWiring(playerController))
             {
                 w.Set("visual", visual.transform);
+            }
+
+            using (var w = new EditorWiring(playerAttack))
+            {
+                w.Set("swingVisual", burst.transform);
             }
 
             return root;
