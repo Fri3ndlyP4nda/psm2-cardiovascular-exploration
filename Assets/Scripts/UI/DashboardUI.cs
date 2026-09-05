@@ -100,6 +100,31 @@ namespace Cardio.UI
         /// averaging each attempt's percentage: a two-puzzle attempt and a
         /// fifteen-puzzle attempt should not carry equal weight.
         /// </summary>
+        /// <summary>
+        /// One line on whether finished attempts have actually reached the server.
+        ///
+        /// SessionLogManager tracked all of this - QueueChanged, QueuedCount and
+        /// LastStatus - and nothing displayed any of it, so a player or invigilator
+        /// whose data never synced saw exactly the same screen as one whose data
+        /// did. The local save is authoritative either way, which is precisely why
+        /// the *only* way to know was to go and read the JSON file.
+        ///
+        /// Deliberately here rather than on the gameplay HUD: it is an operator's
+        /// concern, and interrupting someone mid-level about upload queues would be
+        /// worse than saying nothing.
+        /// </summary>
+        private static string SyncLine(PlayerProgress progress)
+        {
+            int queued = progress.PendingSessionLogs != null ? progress.PendingSessionLogs.Count : 0;
+
+            var logs = Cardio.Backend.SessionLogManager.Instance;
+            string status = logs != null ? logs.LastStatus : "not running";
+
+            if (queued == 0) return $"up to date  <size=80%>({status})</size>";
+
+            return $"<color=#D9A441>{queued} attempt(s) waiting to upload</color>  <size=80%>({status})</size>";
+        }
+
         private static string BuildSummary(PlayerProgress progress, List<SessionRecord> all)
         {
             var sb = new StringBuilder();
@@ -107,6 +132,7 @@ namespace Cardio.UI
             sb.AppendLine($"<b>Levels completed</b>   {progress.CompletedLevels.Count} of {GameConstants.LevelScenes.Length}");
             sb.AppendLine($"<b>Sessions played</b>    {progress.TotalSessionsPlayed}");
             sb.AppendLine($"<b>Attempts recorded</b>  {all.Count}");
+            sb.AppendLine($"<b>Backend</b>            {SyncLine(progress)}");
             sb.AppendLine();
 
             if (all.Count == 0)
