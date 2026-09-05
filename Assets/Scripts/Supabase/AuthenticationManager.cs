@@ -55,8 +55,11 @@ namespace Cardio.Backend
         /// <summary>True when the last attempt failed to reach Supabase at all.</summary>
         private bool _lastAttemptWasTransportFailure;
 
-        /// <summary>True when the failure is a project setting no retry can fix.</summary>
-        private bool _configurationIsBroken;
+        /// <summary>
+        /// True when the failure is something no amount of retrying can fix - the
+        /// backend switched off, or anonymous sign-ins disabled in the dashboard.
+        /// </summary>
+        private bool _retryingIsPointless;
 
         /// <summary>Raised whenever sign-in state changes, so the queue can flush on reconnect.</summary>
         public event Action<bool> SignedInChanged;
@@ -114,7 +117,7 @@ namespace Cardio.Backend
 
                 // Anonymous sign-ins being switched off in the dashboard is not
                 // something waiting will fix.
-                if (_configurationIsBroken) yield break;
+                if (_retryingIsPointless) yield break;
 
                 if (attempt + 1 >= maxSignInAttempts) break;
 
@@ -143,6 +146,12 @@ namespace Cardio.Backend
 
             if (backend == null || !backend.IsEnabled || save == null)
             {
+                // Nothing to retry against. Without this the backoff loop still ran
+                // its full six attempts - about ninety seconds of waiting - every
+                // time the backend was simply switched off, which is the normal
+                // state for the whole test suite and for any build shipped with
+                // sync disabled.
+                _retryingIsPointless = true;
                 SetSignedIn(false, "backend disabled");
                 yield break;
             }
@@ -192,7 +201,7 @@ namespace Cardio.Backend
                 // it is not mistaken for a network problem.
                 if (response.Body.Contains("anonymous_provider_disabled"))
                 {
-                    _configurationIsBroken = true;
+                    _retryingIsPointless = true;
                     SetSignedIn(false, "anonymous sign-ins are disabled in the Supabase dashboard " +
                                        "(Authentication > Sign In / Providers > Anonymous sign-ins)");
                 }
