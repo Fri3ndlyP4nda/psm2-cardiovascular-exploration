@@ -1,5 +1,7 @@
 using Cardio.Core;
+using Cardio.Data;
 using Cardio.DDA;
+using Cardio.Gameplay;
 using Cardio.Player;
 using TMPro;
 using UnityEngine;
@@ -63,9 +65,6 @@ namespace Cardio.UI
         /// walk. A study participant handed a laptop for forty minutes should not
         /// have to guess the controls.
         /// </summary>
-        /// <summary>Prefix on tier announcements, so the expiry timer can recognise its own.</summary>
-        private const string TierAnnouncementPrefix = "Difficulty ";
-
         private const string ControlsReminder =
             "WASD move   \u00B7   Mouse look   \u00B7   Space jump   \u00B7   E examine   \u00B7   Esc pause";
 
@@ -90,6 +89,19 @@ namespace Cardio.UI
 
         private LevelId _controlsShownForLevel = LevelId.None;
         private float _controlsHideAtTime = -1f;
+
+        /// <summary>
+        /// The last message this class put on the hint line.
+        ///
+        /// The timer must only take down its own announcements. A real hint from
+        /// HintManager arriving in between wins, and wiping it with a timer it knows
+        /// nothing about would be worse than leaving an announcement up too long.
+        /// Comparing against the exact string beats prefix-matching, which broke the
+        /// moment a second kind of announcement was added.
+        /// </summary>
+        private string _ownMessage;
+
+        private bool _announcedExitOpen;
         private float _fpsAccumulator;
         private int _fpsFrames;
         private float _fpsTimer;
@@ -140,6 +152,9 @@ namespace Cardio.UI
             var dda = Cardio.DDA.DDAManager.Instance;
             if (dda != null) dda.TierChanged -= OnTierChanged;
 
+            var objectives = ObjectiveManager.Instance;
+            if (objectives != null) objectives.ObjectiveCompleted -= OnObjectiveCompleted;
+
             UnbindHealth();
         }
 
@@ -151,6 +166,47 @@ namespace Cardio.UI
         private void Start()
         {
             BindHealth(FindAnyObjectByType<PlayerHealth>());
+
+            // Subscribed in Start rather than OnEnable: ObjectiveManager is a scene
+            // object too, and its Awake is not guaranteed to have run first.
+            var objectives = ObjectiveManager.Instance;
+            if (objectives != null) objectives.ObjectiveCompleted += OnObjectiveCompleted;
+        }
+
+        /// <summary>
+        /// Marks progress, and calls out the moment the exit becomes usable.
+        ///
+        /// ObjectiveManager raised ObjectiveCompleted with nobody listening, so
+        /// finishing an objective refreshed a board in the corner and produced no
+        /// moment at all. The second half matters more: the exit unlocks on
+        /// AllNonExitObjectivesComplete, and nothing anywhere told the player it had
+        /// happened - they had to notice the board or wander back and find out.
+        /// </summary>
+        private void OnObjectiveCompleted(LevelObjective objective)
+        {
+            var objectives = ObjectiveManager.Instance;
+
+            if (!_announcedExitOpen && objectives != null && objectives.AllNonExitObjectivesComplete())
+            {
+                _announcedExitOpen = true;
+                Announce("Every objective complete - the exit is open.", 8f);
+                return;
+            }
+
+            if (objective == null || objective.Kind == ObjectiveKind.ReachExit) return;
+
+            int done = objectives != null ? objectives.CompletedCount : 0;
+            int total = objectives != null ? objectives.Objectives.Count : 0;
+
+            Announce($"Objective complete  ({done}/{total})", 4f);
+        }
+
+        /// <summary>Shows a message from this class and schedules it to clear.</summary>
+        private void Announce(string message, float seconds)
+        {
+            _ownMessage = message;
+            ShowHint(message);
+            _controlsHideAtTime = Time.unscaledTime + seconds;
         }
 
         private void Update()
@@ -216,11 +272,9 @@ namespace Cardio.UI
             bool harder = tier > _lastAnnouncedTier;
             _lastAnnouncedTier = tier;
 
-            ShowHint(harder
-                ? $"{TierAnnouncementPrefix}raised to {tier} - you are answering well."
-                : $"{TierAnnouncementPrefix}eased to {tier} - take your time.");
-
-            _controlsHideAtTime = Time.unscaledTime + 5f;
+            Announce(harder
+                ? $"Difficulty raised to {tier} - you are answering well."
+                : $"Difficulty eased to {tier} - take your time.", 5f);
         }
 
         /// <summary>
@@ -234,18 +288,10 @@ namespace Cardio.UI
 
             _controlsHideAtTime = -1f;
 
-            // Only clears messages this class put up - the controls reminder and the
-            // tier announcement. A hint from HintManager arriving in between wins and
-            // must not be wiped by a timer it knows nothing about.
-            if (hintLabel == null) return;
+            if (hintLabel == null || string.IsNullOrEmpty(_ownMessage)) return;
+            if (hintLabel.text == _ownMessage) ClearHint();
 
-            // ClearHint sets the label to null, so this has to tolerate a null
-            // string - StartsWith on one throws, and the exception surfaced as
-            // unrelated tests failing several classes later.
-            string current = hintLabel.text;
-            if (string.IsNullOrEmpty(current)) return;
-
-            if (current == ControlsReminder || current.StartsWith(TierAnnouncementPrefix)) ClearHint();
+            _ownMessage = null;
         }
 
         // ------------------------------------------------------------------
@@ -306,11 +352,8 @@ namespace Cardio.UI
             if (session.CurrentLevel != LevelId.None && session.CurrentLevel != _controlsShownForLevel)
             {
                 _controlsShownForLevel = session.CurrentLevel;
-                if (controlsReminderSeconds > 0f)
-                {
-                    ShowHint(ControlsReminder);
-                    _controlsHideAtTime = Time.unscaledTime + controlsReminderSeconds;
-                }
+                _announcedExitOpen = false;
+                if (controlsReminderSeconds > 0f) Announce(ControlsReminder, controlsReminderSeconds);
             }
 
             if (levelLabel != null) levelLabel.text = GameConstants.DisplayNameFor(session.CurrentLevel);

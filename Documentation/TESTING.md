@@ -25,10 +25,10 @@ paths. It does **not** exercise uGUI: no button is clicked, no chip is dragged, 
 
 ## Automated coverage
 
-272 automated checks run without a human — 120 self-check assertions plus 152 NUnit
-test cases (43 EditMode, 109 PlayMode). Run them before every commit.
+273 automated checks run without a human — 120 self-check assertions plus 153 NUnit
+test cases (43 EditMode, 110 PlayMode). Run them before every commit.
 
-**272 of 272 pass**: 120/120 self-checks, 43/43 EditMode, 109/109 PlayMode, plus the
+**273 of 273 pass**: 120/120 self-checks, 43/43 EditMode, 110/110 PlayMode, plus the
 2 `[Explicit]` live tests correctly skipped.
 
 ### The suite does not talk to the live backend

@@ -298,5 +298,50 @@ namespace Cardio.Tests
         }
 
 
+
+        [UnityTest]
+        public IEnumerator CompletingAnObjective_IsAnnounced_AndSoIsTheExitOpening()
+        {
+            // ObjectiveManager raised ObjectiveCompleted with nobody listening, so
+            // finishing one refreshed a board in the corner and produced no moment.
+            // The exit opening had no signal at all - the player had to notice the
+            // board or walk back and find out.
+            GameplayHUD hud = GameplayHUD.Instance;
+            ObjectiveManager objectives = ObjectiveManager.Instance;
+            Assert.IsNotNull(hud);
+            Assert.IsNotNull(objectives);
+
+            int puzzleObjectives = 0;
+            foreach (LevelObjective o in objectives.Objectives)
+            {
+                if (o.Kind != ObjectiveKind.ReachExit) puzzleObjectives++;
+            }
+            Assert.Greater(puzzleObjectives, 0, "level 1 should have puzzle objectives");
+
+            // Solve them all, checking the first produces an announcement.
+            bool sawProgress = false;
+            for (int i = 0; i < objectives.Objectives.Count; i++)
+            {
+                LevelObjective o = objectives.Objectives[i];
+                if (o.Kind == ObjectiveKind.ReachExit || o.Completed) continue;
+
+                objectives.CompleteObjective(i);
+                yield return null;
+
+                if (!objectives.AllNonExitObjectivesComplete())
+                {
+                    StringAssert.Contains("Objective complete", hud.CurrentHintText,
+                                          "finishing an objective should say so");
+                    sawProgress = true;
+                }
+            }
+
+            Assert.IsTrue(sawProgress, "at least one mid-level objective should have been announced");
+            Assert.IsTrue(objectives.AllNonExitObjectivesComplete());
+            StringAssert.Contains("exit is open", hud.CurrentHintText,
+                                  "the moment the exit unlocks is the one worth announcing");
+        }
+
+
     }
 }
